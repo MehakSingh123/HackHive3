@@ -4,6 +4,7 @@ import "./globals.css";
 import Providers from "./components/Providers";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
+import AIChat from "./components/AIChat";
 import Terminal from "./components/Terminal";
 
 export default function RootLayout({ children }) {
@@ -17,6 +18,7 @@ export default function RootLayout({ children }) {
             <main className="flex-1 p-6 overflow-y-auto">{children}</main>
           </div>
           <Terminal />
+          <AIChat />
         </Providers>
       </body>
     </html>

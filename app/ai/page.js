@@ -1,3 +1,4 @@
+//app/ai/page.js
 import { Zap } from "lucide-react";
 
 export default function AiPage() {
