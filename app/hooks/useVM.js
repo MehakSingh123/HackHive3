@@ -4,21 +4,6 @@ import { useState } from "react";
 export default function useVM(addTerminalOutput, sharedState) {
   const [vmStatus, setVMStatus] = useState("Not Started");
 
-  // Check the current status of the VM
-  const checkStatus = async () => {
-    try {
-      const res = await fetch("/api/vm", { method: "GET" });
-      const data = await res.json();
-      if (data.running) {
-        setVMStatus("Started");
-      } else {
-        setVMStatus("Not Started");
-      }
-    } catch (error) {
-      setVMStatus("Error");
-      addTerminalOutput("error", `Status check error: ${error.message}`);
-    }
-  };
 
   // Start the VM using POST to /api/vm
   const startVM = async () => {
@@ -61,5 +46,5 @@ export default function useVM(addTerminalOutput, sharedState) {
     }
   };
 
-  return { vmStatus, startVM, stopVM, checkStatus };
+  return { vmStatus, startVM, stopVM};
 }

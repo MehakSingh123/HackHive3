@@ -1,5 +1,6 @@
 // components/Header.js
 import { Zap } from "lucide-react";
+import Link from "next/link";
 
 export default function Header() {
   return (
@@ -13,24 +14,24 @@ export default function Header() {
       <nav>
         <ul className="flex space-x-6">
           <li>
-            <a href="/" className="hover:text-green-400 transition-colors">
+            <Link href="/" className="hover:text-green-400 transition-colors">
               Home
-            </a>
+            </Link>
           </li>
           <li>
-            <a href="/tools" className="hover:text-green-400 transition-colors">
+            <Link href="/tools" className="hover:text-green-400 transition-colors">
               Tools
-            </a>
+            </Link>
           </li>
           <li>
-            <a href="/ai" className="hover:text-green-400 transition-colors">
+            <Link href="/ai" className="hover:text-green-400 transition-colors">
               AI Assistant
-            </a>
+            </Link>
           </li>
           <li>
-            <a href="#" className="hover:text-green-400 transition-colors">
+            <Link href="#" className="hover:text-green-400 transition-colors">
               Documentation
-            </a>
+            </Link>
           </li>
         </ul>
       </nav>

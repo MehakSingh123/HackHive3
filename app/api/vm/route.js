@@ -6,16 +6,8 @@ import containerName from "../../lib/containerName";
 
 const execPromise = promisify(exec);
 
-async function checkStatus() {
-  const { stdout } = await execPromise(`docker ps -q -f name=${containerName}`);
-  return stdout.trim() !== "";
-}
-
 async function startVM() {
   // Check if container is already running
-  if (await checkStatus()) {
-    return { success: true, message: "VM already running." };
-  }
   // Start the container
   const command = `docker run -d --name=${containerName} --network=bridge kalilinux/kali-rolling tail -f /dev/null`;
   const { stdout, stderr } = await execPromise(command);
@@ -31,9 +23,6 @@ async function startVM() {
 
 async function stopVM() {
   // Check if container is running
-  if (!(await checkStatus())) {
-    return { success: true, message: "VM already stopped." };
-  }
   // Stop the container
   const command = `docker stop ${containerName}`;
   const { stdout, stderr } = await execPromise(command);
@@ -43,16 +32,6 @@ async function stopVM() {
   // Optionally, remove the container afterwards:
   await execPromise(`docker rm ${containerName}`);
   return { success: true, message: "VM stopped successfully." };
-}
-
-export async function GET(request) {
-  try {
-    const running = await checkStatus();
-    return NextResponse.json({ running });
-  } catch (error) {
-    console.error("Status check error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
 }
 
 export async function POST(request) {

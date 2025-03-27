@@ -5,11 +5,7 @@ import { useContext, useEffect } from "react";
 import { VMContext } from "../contexts/VMContext";
 
 export default function Sidebar() {
-  const { vmStatus, startVM, checkStatus, stopVM } = useContext(VMContext);
-
-  useEffect(() => {
-    checkStatus();
-  }, []);
+  const { vmStatus, startVM, stopVM } = useContext(VMContext);
 
   return (
     <aside className="w-64 bg-gray-800 p-4 flex flex-col shadow-lg">
