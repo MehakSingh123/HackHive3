@@ -2,10 +2,11 @@
 "use client";
 import { Terminal as TerminalIcon } from "lucide-react";
 import { useContext, useEffect, useRef } from "react";
-import { TerminalContext } from "../contexts/TerminalContext";
+import { useTerminalContext } from "../contexts/TerminalContext";
 import { CommandProcessorContext } from "../contexts/CommandProcessorContext";
 
 export default function Terminal() {
+  // Properly destructure from context
   const {
     terminalOutput,
     terminalInput,
@@ -13,9 +14,9 @@ export default function Terminal() {
     terminalVisible,
     setTerminalVisible,
     terminalRef,
-    clearTerminal,
-    // clearTerminal could be used if you add handling for "clear" commands
-  } = useContext(TerminalContext);
+    clearTerminal
+  } = useTerminalContext();
+
   const { processCommand } = useContext(CommandProcessorContext);
   const inputRef = useRef(null);
 

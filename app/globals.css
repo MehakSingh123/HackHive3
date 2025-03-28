@@ -24,3 +24,65 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* globals.css */
+.react-rnd {
+  user-select: text !important;
+}
+
+/* Improve code block styling */
+.react-syntax-highlighter {
+  font-family: 'Fira Code', monospace !important;
+  font-size: 0.9em !important;
+  line-height: 1.5 !important;
+}
+
+/* Add hover effect for code actions */
+.code-actions {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.code-block:hover .code-actions {
+  opacity: 1;
+}
+/* globals.css */
+/* Add smooth transitions for tool cards */
+.tool-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tool-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Nmap window animations */
+.nmap-window-enter {
+  opacity: 0;
+  transform: scale(0.95);
+}
+.nmap-window-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.nmap-window-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+.nmap-window-exit-active {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Loading animation */
+@keyframes scanning-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+.scanning-pulse {
+  animation: scanning-pulse 1.5s ease-in-out infinite;
+}

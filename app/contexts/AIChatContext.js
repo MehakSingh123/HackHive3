@@ -1,10 +1,12 @@
 // contexts/AIChatContext.js
 "use client";
 import { createContext, useContext, useState } from "react";
+import { useTerminalContext } from "./TerminalContext";
 
 const AIChatContext = createContext();
 
 export function AIChatProvider({ children }) {
+  const { setTerminalInput, processCommand } = useTerminalContext();
   const [chatVisible, setChatVisible] = useState(false);
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -18,9 +20,7 @@ export function AIChatProvider({ children }) {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [{ role: "user", content: newMessage }]
-        }),
+        body: JSON.stringify({ messages: [{ role: "user", content: newMessage }] }),
       });
       
       const data = await res.json();
@@ -40,7 +40,9 @@ export function AIChatProvider({ children }) {
       addMessage,
       isLoading,
       isPinned,
-      setIsPinned
+      setIsPinned,
+      setTerminalInput,
+      processCommand
     }}>
       {children}
     </AIChatContext.Provider>

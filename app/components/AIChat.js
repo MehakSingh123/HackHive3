@@ -1,9 +1,13 @@
 // components/AIChat.js
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useContext } from "react";
 import { useAIChat } from "../contexts/AIChatContext";
-import { MessageSquare, X, Pin, Move } from "lucide-react";
+import { MessageSquare, X, Pin, Copy, Terminal } from "lucide-react";
 import { Rnd } from "react-rnd";
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import { CommandProcessorContext } from "../contexts/CommandProcessorContext";
+import { TerminalContext } from "../contexts/TerminalContext";
 
 export default function AIChat() {
   const { 
@@ -13,10 +17,56 @@ export default function AIChat() {
     addMessage,
     isLoading,
     isPinned,
-    setIsPinned
+    setIsPinned,
   } = useAIChat();
+    
+    const {processCommand} = useContext(CommandProcessorContext)
+    const {setTerminalVisible} = useContext(TerminalContext)
+  
   const [inputMessage, setInputMessage] = useState("");
   const messagesEndRef = useRef(null);
+
+  const formatMessage = (content) => {
+    const codeBlockRegex = /```([\s\S]*?)```/g;
+    const parts = content.split(codeBlockRegex);
+    
+    return parts.map((part, index) => {
+      if (index % 2 === 1) {
+        const [language, ...code] = part.split('\n');
+        return (
+          <div key={index} className="relative group">
+            <SyntaxHighlighter 
+              language={language || 'bash'} 
+              style={vscDarkPlus}
+              className="rounded-lg p-4 my-2 text-sm"
+            >
+              {code.join('\n').trim()}
+            </SyntaxHighlighter>
+            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={() => navigator.clipboard.writeText(code.join('\n').trim())}
+                className="p-1 bg-gray-700 rounded hover:bg-gray-600"
+                title="Copy code"
+              >
+                <Copy size={14} />
+              </button>
+              <button
+                onClick={() => {
+                  setTerminalVisible(true);
+                  processCommand(code.join('\n').trim());
+                }}
+                className="p-1 bg-gray-700 rounded hover:bg-gray-600"
+                title="Execute in terminal"
+              >
+                <Terminal size={14} />
+              </button>
+            </div>
+          </div>
+        );
+      }
+      return <p key={index} className="whitespace-pre-wrap">{part}</p>;
+    });
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -45,10 +95,11 @@ export default function AIChat() {
       minWidth={300}
       minHeight={400}
       disableDragging={isPinned}
+      enableUserSelectHack={true}
       bounds="window"
       className={`z-50 ${isPinned ? "!right-6 !bottom-6 !w-96 !h-[600px]" : ""}`}
     >
-      <div className="flex flex-col h-full bg-gray-800 rounded-lg shadow-xl border border-purple-800">
+      <div className="flex flex-col h-full bg-gray-800 rounded-lg shadow-xl border border-purple-800 select-text">
         <div className="flex items-center justify-between p-4 border-b border-purple-700 bg-gray-900 rounded-t-lg">
           <div className="flex items-center">
             <MessageSquare size={18} className="text-purple-400 mr-2" />
@@ -75,9 +126,13 @@ export default function AIChat() {
           {messages.map((msg, i) => (
             <div
               key={i}
-              className={`p-3 rounded-lg ${msg.role === "user" ? "bg-purple-900/30 ml-auto w-4/5" : "bg-gray-700/50 w-4/5"}`}
+              className={`p-3 rounded-lg ${msg.role === "user" 
+                ? "bg-purple-900/30 ml-auto" 
+                : "bg-gray-700/50"} transition-all hover:bg-opacity-70`}
             >
-              <p className="text-sm">{msg.content}</p>
+              <div className="text-sm">
+                {formatMessage(msg.content)}
+              </div>
             </div>
           ))}
           {isLoading && (
