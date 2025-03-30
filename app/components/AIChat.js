@@ -2,7 +2,7 @@
 "use client";
 import { useState, useRef, useEffect, useContext } from "react";
 import { useAIChat } from "../contexts/AIChatContext";
-import { MessageSquare, X, Pin, Copy, Terminal } from "lucide-react";
+import { MessageSquare, X, Pin, Copy, Terminal, Maximize, Minimize } from "lucide-react";
 import { Rnd } from "react-rnd";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism';
@@ -20,10 +20,11 @@ export default function AIChat() {
     setIsPinned,
   } = useAIChat();
     
-    const {processCommand} = useContext(CommandProcessorContext)
-    const {setTerminalVisible} = useContext(TerminalContext)
+  const {processCommand} = useContext(CommandProcessorContext);
+  const {setTerminalVisible} = useContext(TerminalContext);
   
   const [inputMessage, setInputMessage] = useState("");
+  const [minimized, setMinimized] = useState(false);
   const messagesEndRef = useRef(null);
 
   const formatMessage = (content) => {
@@ -45,20 +46,20 @@ export default function AIChat() {
             <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={() => navigator.clipboard.writeText(code.join('\n').trim())}
-                className="p-1 bg-gray-700 rounded hover:bg-gray-600"
+                className="p-1 bg-[#0A2540] rounded hover:bg-[#081A2C] border border-[#00ADEE]/30"
                 title="Copy code"
               >
-                <Copy size={14} />
+                <Copy size={14} className="text-[#00ADEE]" />
               </button>
               <button
                 onClick={() => {
                   setTerminalVisible(true);
                   processCommand(code.join('\n').trim());
                 }}
-                className="p-1 bg-gray-700 rounded hover:bg-gray-600"
+                className="p-1 bg-[#0A2540] rounded hover:bg-[#081A2C] border border-[#00ADEE]/30"
                 title="Execute in terminal"
               >
-                <Terminal size={14} />
+                <Terminal size={14} className="text-[#00ADEE]" />
               </button>
             </div>
           </div>
@@ -77,10 +78,11 @@ export default function AIChat() {
   if (!chatVisible) return (
     <button
       onClick={() => setChatVisible(true)}
-      className="fixed bottom-6 right-24 bg-purple-600 hover:bg-purple-500 text-white p-3 rounded-full shadow-lg z-30 transition-all active:scale-95"
+      className="fixed bottom-6 right-40 bg-[#00ADEE] hover:bg-[#0090C5] text-white p-3 rounded-md shadow-lg z-30 transition-all active:scale-95 flex items-center gap-2"
       title="Open AI Chat"
     >
-      <MessageSquare size={24} />
+      <MessageSquare size={20} />
+      <span className="font-medium">AI Assistant</span>
     </button>
   );
 
@@ -99,78 +101,92 @@ export default function AIChat() {
       bounds="window"
       className={`z-50 ${isPinned ? "!right-6 !bottom-6 !w-96 !h-[600px]" : ""}`}
     >
-      <div className="flex flex-col h-full bg-gray-800 rounded-lg shadow-xl border border-purple-800 select-text">
-        <div className="flex items-center justify-between p-4 border-b border-purple-700 bg-gray-900 rounded-t-lg">
+      <div className="flex flex-col h-full bg-[#0A0F14] rounded-lg shadow-xl border border-[#00ADEE]/50 select-text">
+        <div className="flex items-center justify-between p-3 border-b border-[#00ADEE]/30 bg-[#081A2C] rounded-t-lg">
           <div className="flex items-center">
-            <MessageSquare size={18} className="text-purple-400 mr-2" />
-            <h3 className="font-semibold">AI Security Assistant</h3>
+            <MessageSquare size={18} className="text-[#00ADEE] mr-2" />
+            <h3 className="font-medium text-white">AI Security Assistant</h3>
           </div>
           <div className="flex gap-2">
             <button
+              onClick={() => setMinimized(!minimized)}
+              className="text-gray-400 hover:text-white p-1 rounded bg-[#0A2540]/70 hover:bg-[#0A2540]"
+            >
+              {minimized ? <Maximize size={14} /> : <Minimize size={14} />}
+            </button>
+            <button
               onClick={() => setIsPinned(!isPinned)}
-              className="text-purple-400 hover:text-purple-300"
+              className={`p-1 rounded ${isPinned ? 'bg-[#00ADEE]/20 text-[#00ADEE]' : 'text-gray-400 hover:text-white bg-[#0A2540]/70 hover:bg-[#0A2540]'}`}
               title={isPinned ? "Unpin" : "Pin"}
             >
-              <Pin size={16} />
+              <Pin size={14} />
             </button>
             <button
               onClick={() => setChatVisible(false)}
-              className="text-gray-400 hover:text-white"
+              className="text-gray-400 hover:text-white p-1 rounded bg-[#0A2540]/70 hover:bg-[#0A2540]"
             >
-              <X size={16} />
+              <X size={14} />
             </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`p-3 rounded-lg ${msg.role === "user" 
-                ? "bg-purple-900/30 ml-auto" 
-                : "bg-gray-700/50"} transition-all hover:bg-opacity-70`}
+        {!minimized && (
+          <>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-[#00ADEE]/20 scrollbar-track-transparent">
+              {messages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`p-3 rounded-lg ${msg.role === "user" 
+                    ? "bg-[#00ADEE]/10 border border-[#00ADEE]/20 ml-auto" 
+                    : "bg-[#0A2540]/70 border border-[#081A2C]"} transition-all hover:bg-opacity-70`}
+                >
+                  <div className="text-sm text-white">
+                    {formatMessage(msg.content)}
+                  </div>
+                </div>
+              ))}
+              {isLoading && (
+                <div className="p-3 rounded-lg bg-[#0A2540]/70 border border-[#081A2C] w-4/5">
+                  <div className="animate-pulse flex items-center gap-2">
+                    <div className="h-2 w-2 bg-[#00ADEE] rounded-full"></div>
+                    <div className="h-2 w-2 bg-[#00ADEE] rounded-full animation-delay-200"></div>
+                    <div className="h-2 w-2 bg-[#00ADEE] rounded-full animation-delay-400"></div>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (inputMessage.trim()) {
+                  addMessage(inputMessage.trim());
+                  setInputMessage("");
+                }
+              }}
+              className="p-3 border-t border-[#00ADEE]/20"
             >
-              <div className="text-sm">
-                {formatMessage(msg.content)}
+              <div className="relative">
+                <input
+                  type="text"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  placeholder="Ask about security..."
+                  className="w-full bg-[#081A2C] rounded-md px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-1 focus:ring-[#00ADEE] border border-[#00ADEE]/30 text-white"
+                  disabled={isLoading}
+                />
+                <button
+                  type="submit"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[#00ADEE] hover:text-white bg-[#0A2540] p-1 rounded"
+                  disabled={isLoading}
+                >
+                  ↵
+                </button>
               </div>
-            </div>
-          ))}
-          {isLoading && (
-            <div className="p-3 rounded-lg bg-gray-700/50 w-4/5">
-              <div className="animate-pulse">Thinking...</div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (inputMessage.trim()) {
-              addMessage(inputMessage.trim());
-              setInputMessage("");
-            }
-          }}
-          className="p-4 border-t border-purple-700"
-        >
-          <div className="relative">
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="Ask about security..."
-              className="w-full bg-gray-700 rounded-lg px-4 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              disabled={isLoading}
-            />
-            <button
-              type="submit"
-              className="absolute right-2 top-2 text-purple-400 hover:text-purple-300"
-              disabled={isLoading}
-            >
-              ↵
-            </button>
-          </div>
-        </form>
+            </form>
+          </>
+        )}
       </div>
     </Rnd>
   );
