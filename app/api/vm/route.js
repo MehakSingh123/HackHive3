@@ -2,14 +2,23 @@
 import { NextResponse } from "next/server";
 import { exec } from "child_process";
 import { promisify } from "util";
-import containerName from "../../lib/containerName";
 
 const execPromise = promisify(exec);
 
+async function checkStatus() {
+  const { stdout } = await execPromise(`docker ps -q -f name=vm-container`);
+  return stdout.trim() !== "";
+}
+
 async function startVM() {
-  // Check if container is already running
-  // Start the container
-  const command = `docker run -d --name=${containerName} --network=bridge kalilinux/kali-rolling tail -f /dev/null`;
+  if (await checkStatus()) {
+    return { success: true, message: "VM already running." };
+  }
+
+  const command = `docker run -d --name vm-container --network=bridge --cap-add=ALL --privileged vm-full tail -f /dev/null
+
+
+`; // ✅ Fixed (-ai to -d)
   const { stdout, stderr } = await execPromise(command);
   if (stderr) {
     throw new Error(stderr);
@@ -22,15 +31,17 @@ async function startVM() {
 }
 
 async function stopVM() {
-  // Check if container is running
-  // Stop the container
-  const command = `docker stop ${containerName}`;
+  if (!(await checkStatus())) { // ✅ Fixed (if VM is NOT running, return early)
+    return { success: true, message: "VM is already stopped." };
+  }
+
+  const command = `docker stop vm-container`;
   const { stdout, stderr } = await execPromise(command);
   if (stderr) {
     throw new Error(stderr);
   }
-  // Optionally, remove the container afterwards:
-  await execPromise(`docker rm ${containerName}`);
+
+  await execPromise(`docker rm vm-container`); // Optional: Remove after stopping
   return { success: true, message: "VM stopped successfully." };
 }
 
@@ -60,7 +71,6 @@ export async function DELETE(request) {
   }
 }
 
-// Optional: Handle OPTIONS requests (for CORS support)
 export async function OPTIONS() {
   return NextResponse.json(
     {},

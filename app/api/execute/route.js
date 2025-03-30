@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { exec } from "child_process";
 import { promisify } from "util";
-import containerName from "../../lib/containerName";
+
 
 const execPromise = promisify(exec);
 
@@ -37,17 +37,17 @@ export async function POST(request) {
 
     // Verify if the VM container is running
     const checkContainer = await execPromise(
-      `docker ps -q -f name=${containerName}`
+      `docker ps -q -f name=vm-container`
     );
     if (!checkContainer.stdout.trim()) {
       return NextResponse.json(
-        { error: "VM is not running. Start the VM first." },
+        { error: `VM is not running. Start the VM first.` },
         { status: 400 }
       );
     }
 
     // Execute the command inside the container using the Kali image's container
-    const dockerCommand = `docker exec ${containerName} ${command}`;
+    const dockerCommand = `docker exec vm-container ${command}`;
 
     try {
       const { stdout, stderr } = await execPromise(dockerCommand);

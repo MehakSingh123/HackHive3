@@ -1,7 +1,7 @@
 // components/Sidebar.js
 "use client";
 import { Server } from "lucide-react";
-import { useContext, useEffect } from "react";
+import { useContext } from "react";
 import { VMContext } from "../contexts/VMContext";
 
 export default function Sidebar() {
@@ -44,10 +44,6 @@ export default function Sidebar() {
             {vmStatus}
           </span>
         </div>
-      </div>
-      <div className="mt-auto text-xs text-gray-400">
-        <p>Virtual Machine Integration v1.2.0</p>
-        <p>© {new Date().getFullYear()} HackHive</p>
       </div>
     </aside>
   );
