@@ -86,3 +86,46 @@ body {
 .scanning-pulse {
   animation: scanning-pulse 1.5s ease-in-out infinite;
 }
+/* Dark mode inputs */
+.dark-input {
+  @apply w-full bg-gray-800 text-gray-100 p-3 rounded-lg 
+         border border-gray-700 focus:outline-none 
+         focus:border-blue-500 transition-colors;
+}
+
+/* Result cards */
+.dark-card {
+  @apply bg-gray-800 rounded-xl p-6 border border-gray-700;
+}
+
+.section-title {
+  @apply text-xl font-bold mb-4 text-gray-100;
+}
+
+.url-item {
+  @apply flex items-center justify-between bg-gray-700 p-3 rounded-lg;
+}
+
+.url-tunneler {
+  @apply px-2 py-1 bg-gray-600 rounded text-sm mr-2;
+}
+
+.url-value {
+  @apply flex-1 truncate mr-2;
+}
+
+.copy-btn {
+  @apply px-3 py-1 bg-gray-600 rounded hover:bg-gray-500 transition-colors;
+}
+
+.capture-list {
+  @apply max-h-96 overflow-y-auto space-y-3;
+}
+
+.capture-entry {
+  @apply bg-gray-700 p-3 rounded-lg break-all;
+}
+
+.capture-line {
+  @apply text-gray-300 font-mono text-sm;
+}

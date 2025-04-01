@@ -1,3 +1,5 @@
-const containerName = `vm_${Math.random().toString(36).substring(2, 10)}`;
+// app/lib/containerName.js
+// Hardcoded container name for persistence
+const containerName = 'kali-default';
 
 export default containerName;

@@ -1,35 +1,47 @@
 // hooks/useTerminal.js
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
-export default function useTerminal(
-  initialOutput = [
-    { type: "system", content: "Terminal ready. Start VM to begin." },
-  ]
-) {
+const MAX_OUTPUT_LINES = 500; // Limit buffer size to prevent memory issues
+
+export default function useTerminal(initialOutput = []) {
   const [terminalOutput, setTerminalOutput] = useState(initialOutput);
   const [terminalInput, setTerminalInput] = useState("");
-  const [terminalVisible, setTerminalVisible] = useState(false);
+  const [terminalVisible, setTerminalVisible] = useState(false); // Default to hidden
   const terminalRef = useRef(null);
 
-  // Append a new line to terminal output
-  const addTerminalOutput = (type, content) => {
-    setTerminalOutput((prev) => [...prev, { type, content }]);
-  };
+  // Append a new line to terminal output, managing buffer size
+  const addTerminalOutput = useCallback((type, content) => {
+    setTerminalOutput((prev) => {
+        const newLine = { type, content };
+        const newOutput = [...prev, newLine];
+        // Trim output if it exceeds the max line limit
+        if (newOutput.length > MAX_OUTPUT_LINES) {
+            return newOutput.slice(newOutput.length - MAX_OUTPUT_LINES);
+        }
+        return newOutput;
+     });
+  }, []); // No dependencies, safe to use useCallback
 
   // Clear the terminal content
-  const clearTerminal = () => {
-    setTerminalOutput(["prompt", "root@vm:~#"]);
-  };
+  const clearTerminal = useCallback(() => {
+    setTerminalOutput([]);
+  }, []); // No dependencies
 
   // Auto-scroll terminal to the bottom on new output
   useEffect(() => {
     if (terminalRef.current) {
-      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+      // Use setTimeout to ensure scroll happens after DOM update
+      setTimeout(() => {
+         if(terminalRef.current) {
+             terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+         }
+      }, 0);
     }
-  }, [terminalOutput]);
+  }, [terminalOutput]); // Trigger scroll on output change
 
   return {
     terminalOutput,
+    setTerminalOutput, // Expose direct setter for clearing/initial messages
     terminalInput,
     setTerminalInput,
     terminalVisible,

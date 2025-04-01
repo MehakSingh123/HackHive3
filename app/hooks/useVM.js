@@ -1,9 +1,8 @@
+// hooks/useVM.js
 import { useState } from "react";
 
-// hooks/useVM.js
 export default function useVM(addTerminalOutput, sharedState) {
   const [vmStatus, setVMStatus] = useState("Not Started");
-
 
   // Start the VM using POST to /api/vm
   const startVM = async () => {
@@ -14,7 +13,7 @@ export default function useVM(addTerminalOutput, sharedState) {
       const data = await res.json();
       if (data.success) {
         setVMStatus("Started");
-        addTerminalOutput("system", "Virtual machine started successfully.");
+        addTerminalOutput("system", data.message);
         addTerminalOutput("prompt", "root@vm:~#");
       } else {
         setVMStatus("Error Starting VM");
@@ -35,7 +34,7 @@ export default function useVM(addTerminalOutput, sharedState) {
       const data = await res.json();
       if (data.success) {
         setVMStatus("Not Started");
-        addTerminalOutput("system", "Virtual machine stopped successfully.");
+        addTerminalOutput("system", data.message);
       } else {
         setVMStatus("Error Stopping VM");
         addTerminalOutput("error", `Error: ${data.error}`);
@@ -46,5 +45,5 @@ export default function useVM(addTerminalOutput, sharedState) {
     }
   };
 
-  return { vmStatus, startVM, stopVM};
+  return { vmStatus, startVM, stopVM };
 }

@@ -2,35 +2,92 @@
 import { NextResponse } from "next/server";
 import { exec } from "child_process";
 import { promisify } from "util";
-import containerName from "../../lib/containerName";
 
+// Hardcoded container name for reusability
+const containerName = "kali-default";
 const execPromise = promisify(exec);
 
-async function startVM() {
-  // Check if container is already running
-  // Start the container
-  const command = `docker run -d --name=${containerName} --network=bridge kalilinux/kali-rolling tail -f /dev/null`;
-  const { stdout, stderr } = await execPromise(command);
-  if (stderr) {
-    throw new Error(stderr);
+// Helper function to execute commands and handle errors
+async function executeCommand(command) {
+  try {
+    const { stdout, stderr } = await execPromise(command);
+    if (stderr && !stderr.includes("Warning")) {
+      console.error(`Command error: ${stderr}`);
+      throw new Error(stderr);
+    }
+    return { stdout: stdout.trim(), stderr };
+  } catch (error) {
+    console.error(`Command execution failed: ${error.message}`);
+    throw error;
   }
-  return {
-    success: true,
-    containerId: stdout.trim(),
-    message: "VM started successfully.",
-  };
+}
+
+async function containerExists() {
+  try {
+    const { stdout } = await executeCommand(`docker ps -a -q -f name=^/${containerName}$`);
+    return !!stdout;
+  } catch (error) {
+    console.error("Error checking container existence:", error);
+    return false;
+  }
+}
+
+async function isContainerRunning() {
+  try {
+    const { stdout } = await executeCommand(`docker ps -q -f name=^/${containerName}$`);
+    return !!stdout;
+  } catch (error) {
+    console.error("Error checking if container is running:", error);
+    return false;
+  }
+}
+
+async function startVM() {
+  try {
+    const exists = await containerExists();
+    const isRunning = await isContainerRunning();
+
+    if (exists) {
+      if (isRunning) {
+        console.log("Container is already running");
+        return {
+          success: true,
+          containerId: containerName,
+          message: "VM is already running.",
+        };
+      } else {
+        console.log("Starting existing container");
+        await executeCommand(`docker start ${containerName}`);
+        return {
+          success: true,
+          containerId: containerName,
+          message: "VM started successfully.",
+        };
+      }
+    } else {
+      console.log("Creating new container");
+      const { stdout } = await executeCommand(
+        `docker run -d --name=${containerName} --network=bridge kalilinux/kali-rolling tail -f /dev/null`
+      );
+      return {
+        success: true,
+        containerId: stdout,
+        message: "VM created and started successfully.",
+      };
+    }
+  } catch (error) {
+    console.error("Error in startVM:", error);
+    throw error;
+  }
 }
 
 async function stopVM() {
-  // Check if container is running
-  // Stop the container
-  const command = `docker stop ${containerName}`;
-  const { stdout, stderr } = await execPromise(command);
-  if (stderr) {
-    throw new Error(stderr);
+  const isRunning = await isContainerRunning();
+  if (!isRunning) {
+    return { success: true, message: "VM is already stopped." };
   }
-  // Optionally, remove the container afterwards:
-  await execPromise(`docker rm ${containerName}`);
+  
+  await executeCommand(`docker stop ${containerName}`);
   return { success: true, message: "VM stopped successfully." };
 }
 
@@ -60,7 +117,7 @@ export async function DELETE(request) {
   }
 }
 
-// Optional: Handle OPTIONS requests (for CORS support)
+// Handle OPTIONS requests (for CORS support)
 export async function OPTIONS() {
   return NextResponse.json(
     {},
