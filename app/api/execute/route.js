@@ -20,7 +20,18 @@ const restrictedPatterns = [
 
 export async function POST(request) {
   try {
-    const body = await request.json();
+    // Parse request body with error handling
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      console.error("Error parsing request body:", parseError);
+      return NextResponse.json(
+        { error: "Invalid request format", details: parseError.message },
+        { status: 400 }
+      );
+    }
+
     const { command } = body;
 
     if (!command || typeof command !== "string") {
@@ -36,44 +47,73 @@ export async function POST(request) {
     }
 
     // Verify if the VM container is running.
-    let { stdout: runningContainers } = await execPromise(
-      `docker ps -q -f name=${containerName}`
-    );
-    if (!runningContainers.trim()) {
-      // If not running, try to start it.
-      const { stdout: startOutput, stderr: startError } = await execPromise(
-        `docker start ${containerName}`
+    try {
+      let { stdout: runningContainers } = await execPromise(
+        `docker ps -q -f name=${containerName}`
       );
-      if (startError || !startOutput.trim()) {
-        return NextResponse.json(
-          { error: "VM is not running and could not be started. Start the VM first." },
-          { status: 400 }
-        );
+      
+      if (!runningContainers.trim()) {
+        // If not running, try to start it.
+        try {
+          const { stdout: startOutput, stderr: startError } = await execPromise(
+            `docker start ${containerName}`
+          );
+          
+          if (startError) {
+            console.error("Error starting container:", startError);
+          }
+          
+          if (!startOutput.trim()) {
+            return NextResponse.json(
+              { error: "VM is not running and could not be started. Start the VM first." },
+              { status: 400 }
+            );
+          }
+        } catch (startError) {
+          console.error("Container start error:", startError);
+          return NextResponse.json(
+            { error: `Failed to start VM: ${startError.message}` },
+            { status: 500 }
+          );
+        }
       }
+    } catch (containerCheckError) {
+      console.error("Container check error:", containerCheckError);
+      return NextResponse.json(
+        { error: `Failed to check VM status: ${containerCheckError.message}` },
+        { status: 500 }
+      );
     }
 
     // Execute the command inside the container using the Kali image's container
     const dockerCommand = `docker exec ${containerName} ${command}`;
+    console.log("Executing docker command:", dockerCommand);
 
     try {
-      const { stdout, stderr } = await execPromise(dockerCommand);
+      const { stdout, stderr } = await execPromise(dockerCommand, { 
+        timeout: 60000,  // 60 second timeout
+        maxBuffer: 1024 * 1024 * 5  // 5MB buffer for larger outputs
+      });
+      
       return NextResponse.json({
         output: stdout || stderr || "Command executed successfully",
       });
     } catch (execError) {
       console.error("Command execution error:", execError);
+      const errorOutput = execError.stderr || execError.message || "Error executing command";
+      
       return NextResponse.json(
         {
-          error: execError.message || "Error executing command",
-          output: execError.stderr || "",
+          error: true,
+          output: errorOutput
         },
-        { status: 500 }
+        { status: 200 }  // Return 200 even for command errors to allow frontend to display the error output
       );
     }
   } catch (error) {
     console.error("API route error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: error.message },
       { status: 500 }
     );
   }
