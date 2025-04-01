@@ -9,7 +9,6 @@ import { toolsConfig } from "@/public/toolsConfig";
 
 export default function Tools() {
   const { vmStatus } = useContext(VMContext);
-  const { addTerminalOutput } = useContext(TerminalContext);
   const [expandedToolId, setExpandedToolId] = useState(null);
 
   // Extract and group tools dynamically
@@ -17,9 +16,10 @@ export default function Tools() {
     ...group,
     tools: Object.values(group.tools).map((tool) => ({
       ...tool,
-      enabled: tool.enabled ?? vmStatus === "Started",
+      enabled: vmStatus=="Started"? true : false,
     })),
   }));
+  
 
   return (
     <main className="flex-1 p-6 overflow-y-auto">

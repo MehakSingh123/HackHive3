@@ -2,15 +2,17 @@
 "use client";
 import { createContext, useContext, useState } from "react";
 import { useTerminalContext } from "./TerminalContext";
+import { CommandProcessorContext } from "./CommandProcessorContext";
 
 const AIChatContext = createContext();
 
 export function AIChatProvider({ children }) {
-  const { setTerminalInput, processCommand } = useTerminalContext();
+  const { setTerminalInput} = useTerminalContext();
   const [chatVisible, setChatVisible] = useState(false);
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
+  const {processCommand} = useContext(CommandProcessorContext)
 
   const addMessage = async (newMessage) => {
     setMessages(prev => [...prev, { role: "user", content: newMessage }]);

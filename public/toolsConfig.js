@@ -3,7 +3,7 @@ import { Activity, Globe, Shield, Lock } from "lucide-react";
 
 export const toolsConfig = {
   groups: {
-    network: {
+    networkAnalysis: {
       name: "Network Analysis",
       tools: {
         nmap: {
@@ -35,81 +35,70 @@ export const toolsConfig = {
               {
                 name: "target",
                 type: "text",
-                label: "Target Configuration",
+                label: "Target",
                 placeholder: "Enter IP/CIDR (e.g., 192.168.1.0/24)",
               },
               {
                 name: "scanType",
                 type: "select",
-                label: "Scan Profile",
+                label: "Scan Type",
                 options: [
-                  { value: "quick", label: "🚀 Quick Scan" },
-                  { value: "full", label: "🔍 Full Comprehensive Scan" },
-                  { value: "udp", label: "🛡️ UDP Port Scan" },
-                  { value: "custom", label: "⚙️ Custom Configuration" },
+                  { value: "quick", label: "Quick" },
+                  { value: "full", label: "Full" },
+                  { value: "udp", label: "UDP" },
+                  { value: "custom", label: "Custom" },
                 ],
               },
               {
                 name: "ports",
                 type: "text",
-                label: "Port Specification",
-                placeholder: "Example: 80,443,1000-2000,U:53",
+                label: "Ports",
+                placeholder: "e.g., 80,443",
                 visibleWhen: { field: "scanType", value: "custom" },
               },
               {
                 name: "osDetection",
                 type: "checkbox",
-                label: "🖥️ OS Fingerprinting Detection",
+                label: "OS Detection",
                 visibleWhen: { field: "scanType", value: "custom" },
               },
               {
                 name: "serviceVersion",
                 type: "checkbox",
-                label: "🔍 Service Version Detection",
+                label: "Service Version",
                 visibleWhen: { field: "scanType", value: "custom" },
               },
             ],
           },
           aiProcessing: {
-            prompt: `Analyze these nmap results:\n{output}\nFormat as markdown with: Summary, Open Ports table, Vulnerabilities (CVSS >7), and Recommendations.`,
+            prompt: `Analyze these nmap results:\n{output}\nProvide a summary and highlight any potential issues.`,
           },
           processResult: (rawOutput, aiOutput) =>
             aiOutput?.trim() ? aiOutput : rawOutput,
           enabled: true,
         },
 
-        ping: {
+        traceroute: {
           id: 2,
-          name: "Ping",
+          name: "Traceroute",
           icon: <Globe size={24} />,
-          description: "Check the reachability of a host",
+          description: "Trace the network path to a host",
           initialValues: {
             target: "",
-            count: "4",
           },
-          buildCommand: (values) => {
-            let command = `ping ${values.target} `;
-            if (values.count) command += `-c ${values.count}`;
-            return command;
-          },
+          buildCommand: (values) => `traceroute ${values.target}`,
           config: {
             inputs: [
               {
                 name: "target",
                 type: "text",
-                label: "Target Host",
-                placeholder: "Enter IP or hostname",
-              },
-              {
-                name: "count",
-                type: "text",
-                label: "Packet Count",
-                placeholder: "Number of packets to send (default 4)",
+                label: "Target",
+                placeholder: "Enter hostname or IP",
               },
             ],
           },
           aiProcessing: {
-            prompt: `Analyze these ping results:\n{output}\nProvide a summary and any suggestions for troubleshooting connectivity issues in markdown format.`,
+            prompt: `Analyze these traceroute results:\n{output}\nSummarize the network route and latency details.`,
           },
           processResult: (rawOutput, aiOutput) =>
             aiOutput?.trim() ? aiOutput : rawOutput,
@@ -118,69 +107,101 @@ export const toolsConfig = {
       },
     },
 
-    security: {
-      name: "Security & Exploitation",
+    webSecurity: {
+      name: "Web Security",
       tools: {
-        vulnerabilityScanner: {
-          id: 3,
-          name: "Vulnerability Scanner",
-          icon: <Shield size={24} />,
-          description: "Identify security vulnerabilities in systems",
-          // Added a config so it opens as an expanded form
+        nikto: {
+          id: 4,
+          name: "Nikto",
+          icon: <Lock size={24} />,
+          description: "Scan web servers for vulnerabilities",
           initialValues: {
             target: "",
           },
-          buildCommand: (values) => {
-            // Replace with your actual vulnerability scan command
-            return `vulnscan --target ${values.target}`;
-          },
+          buildCommand: (values) => `nikto -h ${values.target}`,
           config: {
             inputs: [
               {
                 name: "target",
                 type: "text",
-                label: "Target System",
-                placeholder: "Enter target IP or URL",
+                label: "Target URL/IP",
+                placeholder: "Enter target URL or IP",
               },
             ],
           },
           aiProcessing: {
-            prompt: `Analyze these vulnerability scan results:\n{output}\nSummarize findings and suggest fixes.`,
+            prompt: `Analyze these Nikto scan results:\n{output}\nHighlight key vulnerabilities and recommendations.`,
+          },
+          processResult: (rawOutput, aiOutput) =>
+            aiOutput?.trim() ? aiOutput : rawOutput,
+          enabled: true,
+        },
+      },
+    },
+
+    infoGathering: {
+      name: "Info Gathering",
+      tools: {
+        whoisLookup: {
+          id: 5,
+          name: "Whois Lookup",
+          icon: <Globe size={24} />,
+          description: "Retrieve domain registration information",
+          initialValues: {
+            target: "",
+          },
+          buildCommand: (values) => `whois ${values.target}`,
+          config: {
+            inputs: [
+              {
+                name: "target",
+                type: "text",
+                label: "Domain/IP",
+                placeholder: "Enter domain or IP",
+              },
+            ],
+          },
+          aiProcessing: {
+            prompt: `Analyze these WHOIS results:\n{output}\nSummarize registration details and important dates.`,
           },
           processResult: (rawOutput, aiOutput) =>
             aiOutput?.trim() ? aiOutput : rawOutput,
           enabled: true,
         },
 
-        passwordCracker: {
-          id: 4,
-          name: "Password Cracker",
-          icon: <Lock size={24} />,
-          description: "Test password strength and security",
+        theHarvester: {
+          id: 6,
+          name: "theHarvester",
+          icon: <Activity size={24} />,
+          description: "Gather emails and subdomains from public sources",
           initialValues: {
-            hash: "",
-            wordlist: "",
+            target: "",
+            source: "google",
           },
           buildCommand: (values) =>
-            `hashcat -m 0 -a 0 ${values.hash} ${values.wordlist}`,
+            `theHarvester -d ${values.target} -b ${values.source}`,
           config: {
             inputs: [
               {
-                name: "hash",
+                name: "target",
                 type: "text",
-                label: "Hash",
-                placeholder: "Enter hash to crack",
+                label: "Domain",
+                placeholder: "Enter target domain",
               },
               {
-                name: "wordlist",
-                type: "text",
-                label: "Wordlist Path",
-                placeholder: "Enter path to wordlist",
+                name: "source",
+                type: "select",
+                label: "Data Source",
+                options: [
+                  { value: "google", label: "Google" },
+                  { value: "bing", label: "Bing" },
+                  { value: "baidu", label: "Baidu" },
+                ],
               },
             ],
           },
           aiProcessing: {
-            prompt: `Analyze these password cracking results:\n{output}\nExplain cracked passwords, patterns, and security recommendations.`,
+            prompt: `Analyze these theHarvester results:\n{output}\nSummarize the collected emails and subdomains.`,
           },
           processResult: (rawOutput, aiOutput) =>
             aiOutput?.trim() ? aiOutput : rawOutput,

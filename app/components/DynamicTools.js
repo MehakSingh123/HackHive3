@@ -77,7 +77,6 @@ export default function DynamicToolForm({ toolConfig, onClose }) {
     const command = toolConfig.buildCommand
       ? toolConfig.buildCommand(formValues)
       : toolConfig.command + " " + Object.values(formValues).join(" ");
-    addTerminalOutput("command", `root@vm:~# ${command}`);
     processCommand(command)
     try {
       const res = await fetch("/api/execute", {
