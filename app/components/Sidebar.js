@@ -1,11 +1,20 @@
 // components/Sidebar.js
 "use client";
-import { Server, Shield, Activity, Database, Terminal, Home, Settings, HelpCircle } from "lucide-react";
-import { useContext, useEffect } from "react";
+
+import { Server, Shield, Activity, Bot, // Changed Terminal to Bot
+        Home, Settings, HelpCircle, BookOpen // Added BookOpen for Docs
+      } from "lucide-react";
+import { useContext } from "react"; // Removed useEffect as it wasn't used
+import { usePathname } from 'next/navigation'; // Import usePathname
+import Link from 'next/link'; // Import Link
 import { VMContext } from "../contexts/VMContext";
 
 export default function Sidebar() {
   const { vmStatus, startVM, stopVM } = useContext(VMContext);
+  const pathname = usePathname(); // Get current path
+
+  // Function to determine if a link is active
+  const isActive = (href) => pathname === href;
 
   return (
     <aside className="w-72 bg-[#081A2C] p-4 flex flex-col shadow-lg border-r border-[#00ADEE]/30">
@@ -13,7 +22,8 @@ export default function Sidebar() {
         <Shield size={28} className="text-[#00ADEE] mr-2" />
         <h2 className="text-xl font-bold text-white">Security Console</h2>
       </div>
-      
+
+      {/* VM Control Section - Remains the same */}
       <div className="p-4 mb-6 bg-[#0A2540] rounded-lg border border-[#00ADEE]/30 shadow-inner">
         <h3 className="text-[#00ADEE] font-medium mb-3 text-sm uppercase tracking-wider">Virtual Machine</h3>
         {vmStatus === "Started" ? (
@@ -48,44 +58,52 @@ export default function Sidebar() {
           </span>
         </div>
       </div>
-      
-      <nav className="mb-6">
+
+      {/* Navigation Section - Updated with Link */}
+      <nav className="mb-6 flex-1 overflow-y-auto"> {/* Added flex-1 and overflow */}
         <h3 className="text-[#00ADEE] font-medium mb-3 text-sm uppercase tracking-wider px-2">Navigation</h3>
         <ul className="space-y-1">
           <li>
-            <a href="/" className="flex items-center py-2.5 px-3 rounded-md text-white hover:bg-[#0A2540] transition-colors">
-              <Home size={18} className="mr-3 text-gray-400" />
+             {/* Use Link component */}
+            <Link href="/" className={`flex items-center py-2.5 px-3 rounded-md transition-colors ${isActive('/') ? 'bg-[#0A2540] text-[#00ADEE]' : 'text-white hover:bg-[#0A2540]/50 hover:text-blue-100'}`}>
+              <Home size={18} className={`mr-3 ${isActive('/') ? 'text-[#00ADEE]' : 'text-gray-400'}`} />
               Dashboard
-            </a>
+            </Link>
           </li>
           <li>
-            <a href="/tools" className="flex items-center py-2.5 px-3 rounded-md text-white hover:bg-[#0A2540] transition-colors">
-              <Activity size={18} className="mr-3 text-gray-400" />
+             {/* Use Link component */}
+            <Link href="/tools" className={`flex items-center py-2.5 px-3 rounded-md transition-colors ${isActive('/tools') ? 'bg-[#0A2540] text-[#00ADEE]' : 'text-white hover:bg-[#0A2540]/50 hover:text-blue-100'}`}>
+              <Activity size={18} className={`mr-3 ${isActive('/tools') ? 'text-[#00ADEE]' : 'text-gray-400'}`} />
               Security Tools
-            </a>
+            </Link>
           </li>
           <li>
-            <a href="/terminal" className="flex items-center py-2.5 px-3 rounded-md text-white hover:bg-[#0A2540] transition-colors">
-              <Terminal size={18} className="mr-3 text-gray-400" />
-              Terminal
-            </a>
+             {/* Changed to AI Assistant */}
+            <Link href="/ai" className={`flex items-center py-2.5 px-3 rounded-md transition-colors ${isActive('/ai') ? 'bg-[#0A2540] text-[#00ADEE]' : 'text-white hover:bg-[#0A2540]/50 hover:text-blue-100'}`}>
+              <Bot size={18} className={`mr-3 ${isActive('/ai') ? 'text-[#00ADEE]' : 'text-gray-400'}`} />
+              AI Assistant
+            </Link>
           </li>
           <li>
-            <a href="/settings" className="flex items-center py-2.5 px-3 rounded-md text-white hover:bg-[#0A2540] transition-colors">
-              <Settings size={18} className="mr-3 text-gray-400" />
+             {/* Use Link component */}
+            <Link href="/settings" className={`flex items-center py-2.5 px-3 rounded-md transition-colors ${isActive('/settings') ? 'bg-[#0A2540] text-[#00ADEE]' : 'text-white hover:bg-[#0A2540]/50 hover:text-blue-100'}`}>
+              <Settings size={18} className={`mr-3 ${isActive('/settings') ? 'text-[#00ADEE]' : 'text-gray-400'}`} />
               Settings
-            </a>
+            </Link>
           </li>
           <li>
-            <a href="/help" className="flex items-center py-2.5 px-3 rounded-md text-white hover:bg-[#0A2540] transition-colors">
-              <HelpCircle size={18} className="mr-3 text-gray-400" />
+             {/* Use Link component */}
+             {/* Changed icon for Documentation */}
+            <Link href="/docs" className={`flex items-center py-2.5 px-3 rounded-md transition-colors ${isActive('/docs') ? 'bg-[#0A2540] text-[#00ADEE]' : 'text-white hover:bg-[#0A2540]/50 hover:text-blue-100'}`}>
+              <BookOpen size={18} className={`mr-3 ${isActive('/docs') ? 'text-[#00ADEE]' : 'text-gray-400'}`} />
               Documentation
-            </a>
+            </Link>
           </li>
         </ul>
       </nav>
-      
-      <div className="mt-auto border-t border-[#00ADEE]/20 pt-4 text-xs text-gray-400">
+
+      {/* Footer Section - Remains the same */}
+      <div className="mt-auto border-t border-[#00ADEE]/20 pt-4 text-xs text-gray-400 flex-shrink-0">
         <p className="flex items-center gap-1">
           <span className="h-2 w-2 bg-[#00ADEE] rounded-full inline-block"></span> VM Integration v1.2.0
         </p>

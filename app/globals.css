@@ -129,3 +129,57 @@ body {
 .capture-line {
   @apply text-gray-300 font-mono text-sm;
 }
+
+/* globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Optional animation for splash screen */
+@keyframes pulse-horizontal {
+    0%, 100% { transform: translateX(-100%); opacity: 0.5; }
+    50% { transform: translateX(100%); opacity: 1; }
+    /* 100% { transform: translateX(-100%); opacity: 0.5; } */ /* Loop handles this */
+}
+.animate-pulse-horizontal {
+    animation: pulse-horizontal 2s ease-in-out infinite;
+}
+
+/* Simple blinking cursor animation */
+@keyframes blink {
+  50% { opacity: 0; }
+}
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+/* Apply via className="... animate-blink" if needed, though the Typewriter has its own */
+
+/* You might need to define header height as a CSS variable if using calc() */
+ :root {
+    /* Example: Adjust to your actual header height */
+    --header-height: 60px;
+ }
+
+body {
+  background-color: #081A2C; /* Ensure body background matches */
+}
+
+/* Improve scrollbar styling (optional) */
+/* For Webkit browsers like Chrome, Safari */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0A2540; /* Dark background for the track */
+}
+::-webkit-scrollbar-thumb {
+  background-color: #00ADEE; /* Accent color for the thumb */
+  border-radius: 10px;
+  border: 2px solid #0A2540; /* Creates padding around thumb */
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #0090C5; /* Darker accent on hover */
+}
+/* For Firefox */
+/* * { scrollbar-width: thin; scrollbar-color: #00ADEE #0A2540; } */ /* Uncomment if targeting Firefox specifically */

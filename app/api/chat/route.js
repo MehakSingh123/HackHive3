@@ -61,9 +61,9 @@ export async function POST(request) {
       const chatCompletion = await Promise.race([
         groq.chat.completions.create({
           messages,
-          model: "llama3-70b-8192",
+          model: "llama-3.3-70b-versatile",
           temperature: 0.7,  // Add temperature parameter for more control
-          max_tokens: 4096,  // Add token limit to prevent overly long responses
+          max_tokens: 1024,  // Add token limit to prevent overly long responses
         }),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error("AI request timed out after 30 seconds")), REQUEST_TIMEOUT)
