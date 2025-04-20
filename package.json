@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "dompurify": "^3.2.4",
-    "framer-motion": "^12.6.2",
+    "framer-motion": "^12.6.3",
     "groq-sdk": "^0.17.0",
     "localtunnel": "^2.0.2",
     "lucide-react": "^0.483.0",

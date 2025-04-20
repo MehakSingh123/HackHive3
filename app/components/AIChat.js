@@ -78,11 +78,10 @@ export default function AIChat() {
   if (!chatVisible) return (
     <button
       onClick={() => setChatVisible(true)}
-      className="fixed bottom-6 right-40 bg-[#00ADEE] hover:bg-[#0090C5] text-white p-3 rounded-md shadow-lg z-30 transition-all active:scale-95 flex items-center gap-2"
+      className="fixed bottom-6 right-20 bg-[#00ADEE] hover:bg-[#0090C5] text-white p-3 rounded-md shadow-lg z-30 transition-all active:scale-95 flex items-center gap-2"
       title="Open AI Chat"
     >
       <MessageSquare size={20} />
-      <span className="font-medium">AI Assistant</span>
     </button>
   );
 
@@ -105,7 +104,7 @@ export default function AIChat() {
         <div className="flex items-center justify-between p-3 border-b border-[#00ADEE]/30 bg-[#081A2C] rounded-t-lg">
           <div className="flex items-center">
             <MessageSquare size={18} className="text-[#00ADEE] mr-2" />
-            <h3 className="font-medium text-white">AI Security Assistant</h3>
+            <h3 className="font-medium text-white">HiveMind AI</h3>
           </div>
           <div className="flex gap-2">
             <button

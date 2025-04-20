@@ -14,13 +14,12 @@ export default function DynamicToolForm({ toolConfig, onClose }) {
   const [formValues, setFormValues] = useState(toolConfig.initialValues || {});
   const [isExecuting, setIsExecuting] = useState(false);
   const [results, setResults] = useState(null); // Will store { raw, processedMarkdown, styledHtml }
-  const [isStylingResult, setIsStylingResult] = useState(false); // Loading state for AI styling
+  const [isStylingResult, setIsStylingResult] = useState(false); 
 
-  // State for AI-generated description
   const [aiDescription, setAiDescription] = useState("");
   const [isDescriptionLoading, setIsDescriptionLoading] = useState(false);
 
-  // Fetch AI description when the component mounts or toolConfig changes
+
   useEffect(() => {
     if (!toolConfig || !toolConfig.name) return;
 
@@ -138,7 +137,6 @@ export default function DynamicToolForm({ toolConfig, onClose }) {
 
       let data; // Define data here
 
-      // --- Start of robust fetching logic ---
       if (!executeRes.ok) {
         let errorMsg = `Execution failed with status ${executeRes.status} (${executeRes.statusText})`;
         try {
@@ -146,7 +144,6 @@ export default function DynamicToolForm({ toolConfig, onClose }) {
             errorMsg = errorData.error || errorMsg;
             // **** ADD ERROR TO TERMINAL TOO ****
             addTerminalOutput('error', `Error: ${errorMsg}`);
-            // Add any additional output from the error response if available
             if (errorData.output) {
                 addTerminalOutput('output', errorData.output);
             }
@@ -154,7 +151,6 @@ export default function DynamicToolForm({ toolConfig, onClose }) {
              try {
                 const errorText = await executeRes.text();
                 if (errorText) errorMsg = errorText.substring(0, 200);
-                // **** ADD TEXT ERROR TO TERMINAL TOO ****
                  addTerminalOutput('error', `Error: ${errorMsg}`);
             } catch (textErr) { /* Ignore */ }
         }
