@@ -88,7 +88,7 @@ async function stopVM() {
   }
   
   await executeCommand(`docker stop ${containerName}`);
-  return { success: true, message: "VM stopped successfully." };
+  return { success: true, message: "Container stopped successfully." };
 }
 
 export async function POST(request) {

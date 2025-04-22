@@ -8,6 +8,7 @@ import { useContext } from "react"; // Removed useEffect as it wasn't used
 import { usePathname } from 'next/navigation'; // Import usePathname
 import Link from 'next/link'; // Import Link
 import { VMContext } from "../contexts/VMContext";
+import { /*...,*/ Target } from "lucide-react"; // Add Target or another suitable icon
 
 export default function Sidebar() {
   const { vmStatus, startVM, stopVM } = useContext(VMContext);
@@ -97,6 +98,12 @@ export default function Sidebar() {
             <Link href="/docs" className={`flex items-center py-2.5 px-3 rounded-md transition-colors ${isActive('/docs') ? 'bg-[#0A2540] text-[#00ADEE]' : 'text-white hover:bg-[#0A2540]/50 hover:text-blue-100'}`}>
               <BookOpen size={18} className={`mr-3 ${isActive('/docs') ? 'text-[#00ADEE]' : 'text-gray-400'}`} />
               Documentation
+            </Link>
+          </li>
+          <li>
+            <Link href="/challenges" className={`flex items-center py-2.5 px-3 rounded-md transition-colors ${isActive('/challenges') ? 'bg-[#0A2540] text-[#00ADEE]' : 'text-white hover:bg-[#0A2540]/50 hover:text-blue-100'}`}>
+              <Target size={18} className={`mr-3 ${isActive('/challenges') ? 'text-[#00ADEE]' : 'text-gray-400'}`} />
+              Challenge Labs
             </Link>
           </li>
         </ul>

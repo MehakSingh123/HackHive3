@@ -2,71 +2,68 @@
 "use client";
 import { useState, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import ToolCard from "./ToolCard";
+import AppIcon from "./AppIcon"; // Use the new AppIcon component
 import { VMContext } from "../contexts/VMContext";
-// Make sure the import name matches the actual filename
-import DynamicToolForm from "./DynamicTools"; // Assuming filename is DynamicToolForm.js
-import { toolsConfig } from "@/public/toolsConfig"; // Assuming this path is correct
+import DynamicToolForm from "./DynamicTools";
+import { toolsConfig } from "@/public/toolsConfig";
+import { X } from "lucide-react"; // For the close button
 
 export default function Tools() {
   const { vmStatus } = useContext(VMContext);
   const [expandedToolId, setExpandedToolId] = useState(null);
 
-  // Find the tool data based on expandedToolId
+  // Find the tool data based on expandedToolId (same logic)
   const expandedToolData = expandedToolId
     ? Object.values(toolsConfig.groups)
         .flatMap((group) => Object.values(group.tools))
         .find((tool) => tool.id === expandedToolId)
     : null;
 
-  // Enhance tools with enabled status based on vmStatus
+  // Enhance tools with enabled status based on vmStatus (same logic)
   const groupedTools = Object.values(toolsConfig.groups).map((group) => ({
     ...group,
     tools: Object.values(group.tools).map((tool) => ({
       ...tool,
-      enabled: vmStatus === "Started" ? true : false, // Simplified logic
+      enabled: vmStatus === "Started", // Simplified: only enabled if VM is exactly "Started"
     })),
   }));
 
   return (
-    <main className="flex-1 p-6 overflow-y-auto">
+    // This component now assumes it's rendered within LinuxDesktopLayout
+    // No <main> tag here needed if LinuxDesktopLayout provides it
+    <>
       {groupedTools.map((group) => (
-        <div key={group.name} className="mb-8"> {/* Increased margin */}
-          <h2 className="text-3xl font-bold mb-5 text-[#00ADEE]"> {/* Styled group name */}
-            {group.name}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> {/* Added lg breakpoint */}
-            {group.tools.map((tool) => (
-              <motion.div
-                key={tool.id}
-                layoutId={`card-${tool.id}`}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 25,
-                }}
-                className={`${
-                  !tool.enabled ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-              >
-                <ToolCard
-                  tool={tool}
-                  onClick={() => {
-                    if (!tool.enabled) return;
-                    // We only need to set the ID here, the modal logic is below
-                    setExpandedToolId(tool.id);
-                  }}
-                />
-              </motion.div>
-            ))}
-          </div>
+        <div key={group.name} className="mb-10">
+          {/* Group Title - Linux Folder Style */}
+           <h2 className="text-xl font-semibold mb-5 text-[#00ADEE]/90 border-b-2 border-[#00ADEE]/20 pb-2">
+             {group.name}
+           </h2>
+          {/* Grid for App Icons */}
+           <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-x-4 gap-y-6">
+             {group.tools.map((tool) => (
+               <motion.div
+                 key={tool.id}
+                 layoutId={`card-${tool.id}`} // This links the icon to the modal
+                 initial={{ opacity: 0, scale: 0.8 }}
+                 animate={{ opacity: 1, scale: 1 }}
+                 exit={{ opacity: 0, scale: 0.8 }}
+                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                 // No specific class needed here unless for positioning/layout
+               >
+                 <AppIcon
+                   tool={tool}
+                   onClick={() => {
+                     if (!tool.enabled) return;
+                     setExpandedToolId(tool.id);
+                   }}
+                 />
+               </motion.div>
+             ))}
+           </div>
         </div>
       ))}
 
-      {/* Modal and Backdrop Logic */}
+      {/* Modal - Styled as a Window */}
       <AnimatePresence>
         {expandedToolId && expandedToolData && (
           <>
@@ -76,35 +73,53 @@ export default function Tools() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-10" // z-10 is below modal (z-20) but above page content
-              onClick={() => setExpandedToolId(null)} // Close modal on backdrop click
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" // Higher z-index
+              onClick={() => setExpandedToolId(null)} // Close on backdrop click
             />
 
-            {/* Expanded Tool Modal */}
+            {/* Window Modal */}
             <motion.div
-              key="expanded-tool"
-              layoutId={`card-${expandedToolId}`} // Ensure this matches the card's layoutId
-              initial={{ scale: 0.95, opacity: 0 }}
+              key="expanded-tool-window"
+              layoutId={`card-${expandedToolId}`} // Matches the AppIcon's parent div
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="fixed inset-0 m-auto z-20 bg-gray-800 rounded-xl shadow-2xl p-6 border-2 border-[#00ADEE]/70 overflow-hidden" // Added overflow-hidden
+              exit={{ scale: 0.9, opacity: 0, transition: { duration: 0.2 } }}
+              transition={{ type: "spring", stiffness: 260, damping: 25 }}
+              className="fixed inset-0 m-auto z-50 flex flex-col bg-gray-900/70 backdrop-blur-xl border border-white/20 rounded-lg shadow-2xl overflow-hidden"
               style={{
-                // Increased size
-                width: "85vw",
-                height: "85vh",
-                maxWidth: "1400px", // Increased max width
-                maxHeight: "900px", // Increased max height
+                // Adjust size as needed, maybe make it slightly smaller than before
+                width: "clamp(300px, 80vw, 1200px)",
+                height: "clamp(400px, 80vh, 800px)",
               }}
             >
-              {/* Render the form inside the expanded modal */}
-              <DynamicToolForm
-                toolConfig={expandedToolData}
-                onClose={() => setExpandedToolId(null)}
-              />
+              {/* Window Title Bar */}
+              <motion.div className="h-10 bg-gradient-to-b from-gray-800/80 to-gray-900/70 border-b border-white/10 flex items-center justify-between px-4 flex-shrink-0">
+                 <div className="flex items-center space-x-2 text-[#00ADEE]">
+                   <span className="text-lg">{expandedToolData.icon}</span>
+                   <h3 className="font-medium text-sm text-white/90">{expandedToolData.name}</h3>
+                 </div>
+                <motion.button
+                  whileHover={{ scale: 1.1, rotate: 90, backgroundColor: 'rgba(255,0,0,0.7)' }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setExpandedToolId(null)}
+                  className="p-1 rounded-full text-gray-300 hover:text-white transition-colors"
+                  title="Close"
+                >
+                  <X size={16} />
+                </motion.button>
+              </motion.div>
+
+              {/* Window Content Area (Scrollable) */}
+              <div className="flex-1 p-6 overflow-y-auto">
+                <DynamicToolForm
+                  toolConfig={expandedToolData}
+                  onClose={() => setExpandedToolId(null)}
+                />
+              </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
-    </main>
+    </>
   );
 }
