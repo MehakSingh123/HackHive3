@@ -7,6 +7,11 @@ import { promisify } from "util";
 const containerName = "kali-default";
 const execPromise = promisify(exec);
 
+async function checkStatus() {
+  const { stdout } = await execPromise(`docker ps -q -f name=vm-container`);
+  return stdout.trim() !== "";
+}
+
 // Helper function to execute commands and handle errors
 async function executeCommand(command) {
   try {

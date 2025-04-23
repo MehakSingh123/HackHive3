@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { exec } from "child_process";
 import { promisify } from "util";
-import containerName from "../../lib/containerName";
+
 
 const execPromise = promisify(exec);
 

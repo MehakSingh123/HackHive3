@@ -22,7 +22,10 @@
     "react-rnd": "^10.5.2",
     "react-syntax-highlighter": "^15.6.1",
     "rehype-highlight": "^7.0.2",
+<<<<<<< HEAD
     "uuid": "^11.1.0",
+=======
+>>>>>>> d234c6233a47d86cb708a0f4056e8c47b108f2c4
     "ws": "^8.18.1"
   },
   "devDependencies": {

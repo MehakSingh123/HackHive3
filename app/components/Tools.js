@@ -1,4 +1,3 @@
-// components/Tools.js
 "use client";
 import { useState, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
