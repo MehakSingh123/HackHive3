@@ -1,44 +1,53 @@
-// components/ToolCard.js
-"use client";
-import { motion } from "framer-motion";
+import React from 'react';
+import { motion } from 'framer-motion';
 
-export default function ToolCard({ tool, onClick }) {
-  return (
-    <motion.div
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className={`bg-[#0A2540] p-5 rounded-lg shadow-lg border ${
-        tool.enabled ? "border-[#00ADEE]/50" : "border-gray-700"
-      } transition-all cursor-pointer relative overflow-hidden`}
-      onClick={tool.enabled ? onClick : undefined}
-    >
-      {/* Background pattern similar to Kali Linux pattern, using a pseudo-element */}
-      <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#00ADEE_1px,transparent_1px)] [background-size:10px_10px] pointer-events-none"></div>
-      
-      <div className="flex items-center mb-4">
-        <div className={`p-2.5 rounded-md ${
-          tool.enabled ? "bg-[#00ADEE]/10 text-[#00ADEE]" : "bg-gray-700/50 text-gray-500"
-        } mr-3`}>
-          {tool.icon}
-        </div>
-        <h3 className="text-lg font-medium text-white">{tool.name}</h3>
-      </div>
-      <p className="text-gray-400 mb-4 text-sm">{tool.description}</p>
-      <div className={`w-full py-2 px-4 rounded-md font-medium transition-all text-center ${
-        tool.enabled 
-          ? "bg-[#00ADEE] hover:bg-[#0090C5] text-white active:scale-95" 
-          : "bg-gray-700/50 cursor-not-allowed text-gray-400 border border-gray-700"
-      }`}>
-        {tool.enabled ? "Launch Tool" : "VM Required"}
-      </div>
-      
-      {!tool.enabled && (
-        <div className="absolute top-3 right-3">
-          <span className="bg-gray-700/70 text-gray-400 text-xs px-2 py-0.5 rounded border border-gray-600">
-            OFFLINE
-          </span>
-        </div>
-      )}
-    </motion.div>
-  );
-}
+const ToolCard = ({ tool, onClick }) => {
+    const { name, description, icon, enabled } = tool;
+    
+    // Default icon background if none specified
+    const iconBgColor = tool.iconBgColor || "#1e293b";
+
+    return (
+        <motion.div
+            whileHover={{ scale: enabled ? 1.03 : 1 }}
+            whileTap={{ scale: enabled ? 0.97 : 1 }}
+            className={`bg-slate-800/40 backdrop-blur-sm border border-slate-700/50 rounded-xl overflow-hidden h-full
+                ${enabled ? 'hover:bg-[#00ADEE]/10 hover:border-[#00ADEE]/30 hover:shadow-lg hover:shadow-[#00ADEE]/10' : 'cursor-not-allowed'}`}
+            onClick={onClick}
+        >
+            <div className="p-5 flex flex-col h-full">
+                {/* Tool Icon */}
+                <div 
+                    className="w-12 h-12 rounded-lg mb-4 flex items-center justify-center text-white"
+                    style={{ backgroundColor: iconBgColor }}
+                >
+                    {icon && typeof icon === "string" ? (
+                        <span className="text-xl">{icon}</span>
+                    ) : icon ? (
+                        icon
+                    ) : (
+                        <span className="text-xl font-bold">{name.charAt(0)}</span>
+                    )}
+                </div>
+                
+                {/* Tool Details */}
+                <h3 className="text-lg font-semibold text-white mb-2">{name}</h3>
+                {description && (
+                    <p className="text-sm text-gray-300 flex-grow">{description}</p>
+                )}
+                
+                {/* Status Indicator */}
+                <div className="mt-4 pt-3 border-t border-gray-700/50">
+                    <div className="flex items-center">
+                        <div className={`w-2 h-2 rounded-full mr-2 ${enabled ? 'bg-green-400' : 'bg-yellow-500'}`}></div>
+                        <span className="text-xs text-gray-400">
+                            {enabled ? 'Ready to launch' : 'VM not running'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </motion.div>
+    );
+};
+
+export default ToolCard;
