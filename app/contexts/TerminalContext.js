@@ -1,76 +1,43 @@
-// contexts/TerminalContext.js
 "use client";
-import { createContext, useContext, useState, useCallback, useRef } from "react";
+import { createContext, useContext, useState, useCallback } from "react";
 
-export const TerminalContext = createContext(undefined); // Initialize with undefined
+export const TerminalContext = createContext();
 
 export function TerminalProvider({ children }) {
-  const [terminalOutput, setTerminalOutput] = useState([{
-    type: "system",
-    content: "Terminal Initialized." // Changed initial message
-  }, {
-    type: "prompt", // Add initial prompt
-    content: "root@vm:~# "
-  }]);
-  const [terminalInput, setTerminalInput] = useState("");
-  // Removed terminalVisible state
-  const terminalRef = useRef(null); // Keep ref for potential use in TerminalContent
+  const [terminalVisible, setTerminalVisible] = useState(false);
+  const [commandHistory, setCommandHistory] = useState([]);
+  const [terminalOutput, setTerminalOutput] = useState([]);
+  
+  const addToCommandHistory = useCallback((command) => {
+    if (!command || command.trim() === '') return;
+    
+    setCommandHistory(prev => {
+      // Don't add duplicate commands consecutively
+      if (prev.length > 0 && prev[prev.length - 1] === command) {
+        return prev;
+      }
+      
+      // Add command to history and limit size to 100
+      const newHistory = [...prev, command];
+      if (newHistory.length > 100) {
+        return newHistory.slice(-100);
+      }
+      return newHistory;
+    });
+  }, []);
 
   const addTerminalOutput = useCallback((type, content) => {
-     // Ensure content is a string, handle potential errors or non-string types gracefully
-     const contentString = String(content ?? ''); // Default to empty string if null/undefined
-     if (!contentString) return;
-
-     // Handle multiline output more carefully
-     const lines = contentString.split('\n');
-
-     setTerminalOutput(prev => {
-       const newOutput = [...prev];
-
-       // Remove the last prompt line if it exists, to append output before it
-       if (newOutput.length > 0 && newOutput[newOutput.length - 1].type === 'prompt') {
-           newOutput.pop();
-       }
-
-       lines.forEach((line, index) => {
-            // Add each line as a separate entry of the specified type
-            // Avoid adding empty lines unless it's the only line
-            if (line || lines.length === 1) {
-                 newOutput.push({ type, content: line });
-            }
-       });
-
-       // Add the prompt back at the end if the last added type wasn't a prompt itself
-        if (type !== 'prompt') {
-            newOutput.push({ type: 'prompt', content: 'root@vm:~# ' });
-        }
-
-       // Keep last N lines (adjust N as needed)
-       const maxLines = 1500;
-       return newOutput.slice(-maxLines);
-     });
-   }, []);
-
-  const clearTerminal = useCallback(() => {
-    setTerminalOutput([{
-      type: "system",
-      content: "Terminal cleared."
-    }, {
-      type: "prompt", // Add prompt after clearing
-      content: "root@vm:~# "
-    }]);
-    setTerminalInput(""); // Clear input field as well
+    setTerminalOutput(prev => [...prev, { type, content }]);
   }, []);
 
   return (
     <TerminalContext.Provider value={{
+      terminalVisible,
+      setTerminalVisible,
+      commandHistory,
+      addToCommandHistory,
       terminalOutput,
-      terminalInput,
-      setTerminalInput,
-      terminalRef, // Keep exposing ref if TerminalContent needs it
-      addTerminalOutput,
-      clearTerminal
-      // Removed terminalVisible, setTerminalVisible
+      addTerminalOutput
     }}>
       {children}
     </TerminalContext.Provider>
@@ -79,7 +46,7 @@ export function TerminalProvider({ children }) {
 
 export const useTerminalContext = () => {
   const context = useContext(TerminalContext);
-  if (context === undefined) { // Check for undefined initialization
+  if (!context) {
     throw new Error("useTerminalContext must be used within a TerminalProvider");
   }
   return context;

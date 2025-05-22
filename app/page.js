@@ -68,7 +68,7 @@ export default function HomePage() {
   // --- Main Homepage Content ---
   return (
     <motion.div
-      className="w-full px-6 py-8 md:px-12 md:py-10 text-white bg-gradient-to-b from-[#081A2C] via-[#0A2540] to-[#0A2540] min-h-[calc(100vh-var(--header-height))] flex flex-col"
+      className="w-full px-6 py-8 md:px-12 md:py-10 text-white bg-gradient-to-b from-[#081A2C] via-[#0A2540] to-[#0A2540] h-full  flex flex-col"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -94,44 +94,20 @@ export default function HomePage() {
       </header>
 
       {/* AI Generated Intro Section (Keep As Is) */}
-      <section className="mb-12 md:mb-16 bg-[#081A2C]/50 border border-[#00ADEE]/30 rounded-lg p-6 shadow-lg">
-        <h2 className="text-2xl font-semibold text-[#00ADEE] mb-4 flex items-center gap-2">
-          <Bot size={24} /> Platform Overview
-        </h2>
-        <div className="text-gray-300 text-base md:text-lg leading-relaxed font-mono min-h-[50px]">
-          {isAiTextLoading ? (
-            <span className="flex items-center gap-2"> <div className="w-2 h-5 bg-gray-500 animate-pulse"></div> Generating insights...</span>
-          ) : aiError ? (
-            <span className="text-yellow-400">{aiError}</span>
-          ) : (
-            <Typewriter text={aiIntroText} speed={0.0001} />
-          )}
-        </div>
-      </section>
+      
 
       {/* *** Interactive Hacking Stages Section *** */}
-      <section className="mb-12 md:mb-16">
-         <h2 className="text-2xl md:text-3xl font-semibold text-center mb-8 text-[#00ADEE]">Explore the Hacking Lifecycle</h2>
+      <section className="">
+         <h2 className="text-2xl  md:text-3xl font-semibold text-center mb-8 text-[#00ADEE]">Explore the Hacking Lifecycle</h2>
          {/* --- ADJUST THIS PARAGRAPH --- */}
-         <p className="text-center text-gray-400 mb-10 md:mb-12 max-w-2xl mx-auto font-mono text-sm md:text-base">
+         <p className="text-center text-gray-400 max-w-2xl mx-auto font-mono text-sm md:text-base">
            Click on a stage to expand it and learn more about its purpose and common tools used in ethical hacking engagements within HackHive.
          </p>
          <EthicalHackingStages /> {/* Render the component */}
       </section>
 
       {/* Call to Action Section (Keep As Is) */}
-      <section className="mt-auto text-center pt-8"> {/* Pushes to bottom */}
-        <Link href="/tools">
-            <motion.button
-                className="bg-[#00ADEE] hover:bg-[#0090C5] text-white font-bold py-3 px-8 rounded-lg text-lg transition-colors duration-300 inline-flex items-center gap-2 shadow-lg"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                 initial={{ opacity: 0 }} animate={{ opacity: 1}} transition={{ delay: 0.8 }}
-            >
-                Explore Security Tools <ArrowRight size={20} />
-            </motion.button>
-        </Link>
-      </section>
+     
 
     </motion.div>
   );
