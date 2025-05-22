@@ -183,3 +183,114 @@ body {
 }
 /* For Firefox */
 /* * { scrollbar-width: thin; scrollbar-color: #00ADEE #0A2540; } */ /* Uncomment if targeting Firefox specifically */
+
+/* Window Manager Styles */
+.window-container {
+    transition: all 0.2s ease-in-out;
+}
+
+.window-container.maximized {
+    transition: all 0.2s ease-in-out;
+}
+
+.window-container .react-rnd {
+    transition: all 0.2s ease-in-out;
+}
+
+.window-container.maximized .react-rnd {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Window Header Hover Effects */
+.window-drag-handle button {
+    transition: all 0.15s ease-in-out;
+}
+
+.window-drag-handle button:hover {
+    transform: scale(1.1);
+}
+
+.window-drag-handle button:active {
+    transform: scale(0.95);
+}
+
+/* Window Content Area */
+.window-content {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 173, 238, 0.3) transparent;
+}
+
+.window-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.window-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.window-content::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 173, 238, 0.3);
+    border-radius: 4px;
+}
+
+.window-content::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 173, 238, 0.5);
+}
+
+/* Window Animations */
+@keyframes windowAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes windowDisappear {
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+}
+
+.window-enter {
+    animation: windowAppear 0.2s ease-out forwards;
+}
+
+.window-exit {
+    animation: windowDisappear 0.2s ease-in forwards;
+}
+
+/* Window Focus Effects */
+.window-container:focus-within {
+    box-shadow: 0 0 0 2px rgba(0, 173, 238, 0.3);
+}
+
+/* Window Resize Handles */
+.react-rnd-handle {
+    background-color: rgba(0, 173, 238, 0.2);
+    border: 1px solid rgba(0, 173, 238, 0.3);
+    border-radius: 4px;
+}
+
+.react-rnd-handle:hover {
+    background-color: rgba(0, 173, 238, 0.3);
+}
+
+/* Window Minimize/Maximize Transitions */
+.window-minimize {
+    transform: scale(0.95);
+    opacity: 0.8;
+}
+
+.window-maximize {
+    transform: scale(1);
+    opacity: 1;
+}

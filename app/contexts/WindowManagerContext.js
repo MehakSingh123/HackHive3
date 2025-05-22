@@ -1,113 +1,232 @@
 // contexts/WindowManagerContext.js
 "use client";
 
-import React, { createContext, useState, useContext, useCallback, useRef } from 'react';
-import { v4 as uuidv4 } from 'uuid'; // Need to install uuid: npm install uuid
+import React, { createContext, useContext, useState, useCallback, useRef, useMemo } from 'react'; // Import useMemo
+import { v4 as uuidv4 } from 'uuid';
+// Assuming toolsConfig is correctly structured and located
+// Adjust the import path if necessary
+import { toolsConfig } from "@/public/toolsConfig";
+
+// Define standard window types
+export const WINDOW_TYPES = {
+    TOOL: 'TOOL',
+    AI_CHAT: 'AI_CHAT',
+    TERMINAL: 'TERMINAL',
+    // Add other window types here if needed
+};
+
+// Helper function to get tool config (remains the same)
+const getToolConfigById = (toolId) => {
+    if (!toolId) return null;
+    // Check if toolsConfig and groups exist
+    if (!toolsConfig || !toolsConfig.groups) {
+        console.error("toolsConfig or toolsConfig.groups is not defined correctly.");
+        return null;
+    }
+    try {
+        return Object.values(toolsConfig.groups)
+            .flatMap((group) => (group && group.tools ? Object.values(group.tools) : [])) // Add check for group.tools
+            .find((tool) => tool && tool.id === toolId); // Add check for tool
+    } catch (error) {
+        console.error("Error accessing tool configuration:", error);
+        return null;
+    }
+};
+
 
 const WindowManagerContext = createContext(null);
 
-export const useWindowManager = () => useContext(WindowManagerContext);
-
-// Define initial window types/configs - extend as needed
-const WINDOW_TYPES = {
-    AI_CHAT: 'AI_CHAT',
-    TERMINAL: 'TERMINAL',
-    TOOL: 'TOOL', // Generic type for tools from toolsConfig
-};
-
-// Default dimensions (can be overridden)
-const defaultDimensions = {
-    [WINDOW_TYPES.AI_CHAT]: { width: 380, height: 550 },
-    [WINDOW_TYPES.TERMINAL]: { width: 700, height: 450 },
-    [WINDOW_TYPES.TOOL]: { width: 800, height: 600 }, // Default for tools
-};
-
 export const WindowManagerProvider = ({ children }) => {
     const [windows, setWindows] = useState([]);
-    const nextZIndex = useRef(10); // Start z-index for windows
+    const nextZIndex = useRef(10); // Start z-index from 10
+    const [commandToRun, setCommandToRun] = useState(null);
+    // Helper to get next z-index (memoized)
+    const getNextZIndex = useCallback(() => {
+        nextZIndex.current += 1; // Increment the ref's current value
+        return nextZIndex.current;
+    }, []); // No dependencies, ref updates don't trigger re-renders
 
+    // Bring window to front (memoized)
     const bringToFront = useCallback((id) => {
         setWindows(prevWindows => {
-            const maxZ = Math.max(...prevWindows.map(w => w.zIndex), nextZIndex.current -1) ;
-            nextZIndex.current = maxZ + 1;
-            return prevWindows.map(w =>
-                w.id === id ? { ...w, zIndex: nextZIndex.current } : w
-            );
+            // Check if the window is already at the front based on the ref value
+            // This avoids unnecessary state updates if already topmost visible window
+            const currentMaxZ = Math.max(1, ...prevWindows.filter(w => !w.minimized).map(w => w.zIndex)); // Min 1 to handle empty array
+            const targetWindow = prevWindows.find(w => w.id === id);
+
+            // Only update if not already the topmost window
+            if (targetWindow && targetWindow.zIndex < currentMaxZ) {
+                 const newZIndex = getNextZIndex(); // Get next z-index
+                 console.log(`WindowManager: Bringing window ${id} to front with zIndex ${newZIndex}`);
+                 return prevWindows.map(win =>
+                    win.id === id ? { ...win, zIndex: newZIndex, minimized: false } : win // Also ensure unminimized
+                 );
+            } else if (targetWindow && targetWindow.minimized) {
+                // If minimized, still bring to front logic applies when unminimizing
+                const newZIndex = getNextZIndex();
+                console.log(`WindowManager: Unminimizing window ${id} to front with zIndex ${newZIndex}`);
+                return prevWindows.map(win =>
+                   win.id === id ? { ...win, zIndex: newZIndex, minimized: false } : win
+                );
+            }
+            return prevWindows; // No change needed if already topmost or not found
         });
-    }, []);
+    }, [getNextZIndex]); // Depends on stable getNextZIndex
 
-    const openWindow = useCallback(({ type, toolId = null, title, initialPos = null }) => {
-        // Prevent opening duplicate non-tool windows (Chat, Terminal)
-        if (type === WINDOW_TYPES.AI_CHAT && windows.some(w => w.type === WINDOW_TYPES.AI_CHAT)) {
-             const existingWindow = windows.find(w => w.type === WINDOW_TYPES.AI_CHAT);
-             if (existingWindow) bringToFront(existingWindow.id);
-             return; // Don't open another one
+    // Toggle minimize window (memoized)
+    const toggleMinimizeWindow = useCallback((id) => {
+        setWindows(prevWindows =>
+            prevWindows.map(win => {
+                if (win.id === id) {
+                    if (!win.minimized) {
+                        // Minimizing: just update minimized flag
+                         console.log(`WindowManager: Minimizing window ${id}`);
+                        return { ...win, minimized: true };
+                    } else {
+                        // Unminimizing: bring to front and unminimize
+                        const newZIndex = getNextZIndex();
+                         console.log(`WindowManager: Unminimizing window ${id} to front with zIndex ${newZIndex}`);
+                        return { ...win, minimized: false, zIndex: newZIndex };
+                    }
+                }
+                return win;
+            })
+        );
+    }, [getNextZIndex]); // Depends on stable getNextZIndex
+
+    // Update window position (memoized)
+    const updateWindowPosition = useCallback((id, x, y) => {
+         // console.log(`WindowManager: Updating position for window ${id} to (${x}, ${y})`); // Can be noisy
+        setWindows(prevWindows =>
+            prevWindows.map(win =>
+                win.id === id ? { ...win, x, y } : win
+            )
+        );
+    }, []); // No dependencies
+
+    // Update window size (memoized)
+    const updateWindowSize = useCallback((id, width, height) => {
+         // console.log(`WindowManager: Updating size for window ${id} to ${width}x${height}`); // Can be noisy
+        setWindows(prevWindows =>
+            prevWindows.map(win =>
+                win.id === id ? { ...win, width, height } : win
+            )
+        );
+    }, []); // No dependencies
+
+    // Close window (memoized)
+    const closeWindow = useCallback((id) => {
+         console.log(`WindowManager: Closing window ${id}`);
+        setWindows(prevWindows => prevWindows.filter(win => win.id !== id));
+    }, []); // No dependencies
+
+    // Open a new window (memoized)
+    // Note: This depends on 'windows' state, so it *will* get a new reference when windows array changes.
+    // This is generally okay unless passed very deep as a dependency to effects.
+    const openWindow = useCallback((windowConfig) => {
+        const { type, toolId, initialPosition, initialSize } = windowConfig;
+        console.log(`WindowManager: Attempting to open window - Type: ${type}, ToolID: ${toolId || 'N/A'}`);
+
+        // Check if a non-tool window of the same type already exists
+        const existingSingletonWindow = type !== WINDOW_TYPES.TOOL
+            ? windows.find(win => win.type === type)
+            : null;
+
+        // Check if this specific tool window already exists
+        const existingToolWindow = type === WINDOW_TYPES.TOOL
+            ? windows.find(win => win.toolId === toolId)
+            : null;
+
+        const existingWindow = existingSingletonWindow || existingToolWindow;
+
+        if (existingWindow) {
+             console.log(`WindowManager: Window already exists (ID: ${existingWindow.id}). Bringing to front.`);
+            // If it exists, bring it to front and unminimize it
+            // Use bringToFront which handles z-index and minimized state
+            bringToFront(existingWindow.id);
+            return; // Stop execution
         }
-         if (type === WINDOW_TYPES.TERMINAL && windows.some(w => w.type === WINDOW_TYPES.TERMINAL)) {
-             const existingWindow = windows.find(w => w.type === WINDOW_TYPES.TERMINAL);
-              if (existingWindow) bringToFront(existingWindow.id);
-             return; // Don't open another one
+
+        // If window doesn't exist, create a new one
+        const newWindowId = uuidv4();
+        const newZIndex = getNextZIndex();
+        console.log(`WindowManager: Creating new window ${newWindowId} with zIndex ${newZIndex}`);
+
+        let title = "Window";
+        let defaultWidth = 600;
+        let defaultHeight = 400;
+        let IconComponent = null; // Assuming IconComponent comes from config or is set here
+
+        switch (type) {
+            case WINDOW_TYPES.AI_CHAT:
+                title = "AI Chat";
+                defaultWidth = 500; defaultHeight = 650;
+                // IconComponent = ChatIcon; // Example
+                break;
+            case WINDOW_TYPES.TERMINAL:
+                title = "Terminal";
+                defaultWidth = 700; defaultHeight = 450;
+                // IconComponent = TerminalIcon; // Example
+                break;
+            case WINDOW_TYPES.TOOL:
+                const toolConfig = getToolConfigById(toolId);
+                if (!toolConfig) {
+                    console.error(`WindowManager: Tool config not found for ID: ${toolId}`);
+                    return; // Don't open window if config missing
+                }
+                title = toolConfig.name || "Tool";
+                IconComponent = toolConfig.icon; // Get icon from config
+                defaultWidth = toolConfig.windowWidth || 800;
+                defaultHeight = toolConfig.windowHeight || 600;
+                break;
+            default:
+                console.error("WindowManager: Unknown window type requested:", type);
+                return;
         }
 
-        nextZIndex.current += 1;
-        const newWindowId = type === WINDOW_TYPES.TOOL ? `${toolId}-${uuidv4()}` : type; // Unique ID for tools
-
-        // Calculate initial position slightly offset for new windows
-        const defaultX = 100 + (windows.length % 5) * 30;
-        const defaultY = 100 + (windows.length % 5) * 30;
+        // Calculate initial position with cascade effect to avoid perfect overlap
+        const cascadeOffset = (windows.length % 10) * 30; // Max 10 cascades then wraps
+        const basePos = {
+            x: 100 + cascadeOffset,
+            y: 100 + cascadeOffset
+        };
 
         const newWindow = {
             id: newWindowId,
-            type: type,
-            toolId: toolId, // Store toolId if it's a tool window
-            title: title || (toolId ? toolId : type), // Use toolId or type for title
-            x: initialPos?.x ?? defaultX,
-            y: initialPos?.y ?? defaultY,
-            width: defaultDimensions[type]?.width || defaultDimensions[WINDOW_TYPES.TOOL].width,
-            height: defaultDimensions[type]?.height || defaultDimensions[WINDOW_TYPES.TOOL].height,
-            zIndex: nextZIndex.current,
-            minimized: false,
+            type,
+            toolId: type === WINDOW_TYPES.TOOL ? toolId : null,
+            title,
+            IconComponent, // Store the component itself or a reference/name
+            x: initialPosition?.x ?? basePos.x,
+            y: initialPosition?.y ?? basePos.y,
+            width: initialSize?.width ?? defaultWidth,
+            height: initialSize?.height ?? defaultHeight,
+            zIndex: newZIndex,
+            minimized: false
         };
 
-        setWindows(prev => [...prev, newWindow]);
-    }, [windows, bringToFront]); // Added bringToFront dependency
+        console.log(`WindowManager: Adding new window:`, newWindow);
+        // Correct immutable update: create new array with the new window appended
+        setWindows(prevWindows => [...prevWindows, newWindow]);
 
-    const closeWindow = useCallback((id) => {
-        setWindows(prev => prev.filter(w => w.id !== id));
-    }, []);
+    }, [windows, bringToFront, getNextZIndex, toggleMinimizeWindow]); // Dependencies for openWindow
 
-    const toggleMinimizeWindow = useCallback((id) => {
-        setWindows(prev => prev.map(w =>
-            w.id === id ? { ...w, minimized: !w.minimized } : w
-        ));
-         // If un-minimizing, bring it to front
-        const window = windows.find(w => w.id === id);
-        if (window && window.minimized) { // Check the *current* state before toggle
-             bringToFront(id);
-        }
-    }, [windows, bringToFront]); // Added dependencies
+    const sendCommandToTerminal = useCallback((command) => {
+        console.log("WindowManagerContext: Setting commandToRun -", command.trim());
+        // Set state with command and a unique timestamp
+        setCommandToRun({ cmd: command, timestamp: Date.now() });
+    }, []); // No dependencies needed
 
-     const updateWindowPosition = useCallback((id, x, y) => {
-        setWindows(prev => prev.map(w =>
-            w.id === id ? { ...w, x, y } : w
-        ));
-    }, []);
+    // *** ADDED FUNCTION TO CLEAR COMMAND ***
+    const clearCommandToRun = useCallback(() => {
+        console.log("WindowManagerContext: Clearing commandToRun.");
+        setCommandToRun(null);
+    }, []); 
 
-     const updateWindowSize = useCallback((id, width, height) => {
-        setWindows(prev => prev.map(w =>
-            w.id === id ? { ...w, width, height } : w
-        ));
-    }, []);
-
-    const getWindow = (id) => {
-        return windows.find(w => w.id === id);
-    };
-
-    const getWindowByType = (type) => {
-        return windows.find(w => w.type === type);
-    }
-
-    const value = {
+    // *** Memoize the context value object ***
+    // This prevents consumers from re-rendering unnecessarily if the provider
+    // re-renders but these specific values haven't changed reference.
+    const value = useMemo(() => ({
         windows,
         openWindow,
         closeWindow,
@@ -115,14 +234,41 @@ export const WindowManagerProvider = ({ children }) => {
         bringToFront,
         updateWindowPosition,
         updateWindowSize,
-        getWindow,
-        getWindowByType,
         WINDOW_TYPES,
-    };
+        getToolConfigById,
+        // Add command state and functions
+        commandToRun,
+        sendCommandToTerminal,
+        clearCommandToRun
+    }), [
+        windows,
+        openWindow,
+        closeWindow,
+        toggleMinimizeWindow,
+        bringToFront,
+        updateWindowPosition,
+        updateWindowSize,
+        // Add command state and functions to dependency array
+        commandToRun,
+        sendCommandToTerminal,
+        clearCommandToRun
+        // getToolConfigById is stable, WINDOW_TYPES is constant
+    ]);
+    // *** End Memoization ***
+
 
     return (
         <WindowManagerContext.Provider value={value}>
             {children}
         </WindowManagerContext.Provider>
     );
+};
+
+// Custom hook to consume the context remains the same
+export const useWindowManager = () => {
+    const context = useContext(WindowManagerContext);
+    if (!context) {
+        throw new Error('useWindowManager must be used within a WindowManagerProvider');
+    }
+    return context;
 };

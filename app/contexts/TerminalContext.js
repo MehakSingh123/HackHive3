@@ -1,54 +1,43 @@
 "use client";
-import { createContext, useContext, useState, useCallback, useRef } from "react";
+import { createContext, useContext, useState, useCallback } from "react";
 
 export const TerminalContext = createContext();
 
 export function TerminalProvider({ children }) {
-  const [terminalOutput, setTerminalOutput] = useState([{
-    type: "system",
-    content: "Initializing Terminal..."
-  }]);
-  const [terminalInput, setTerminalInput] = useState("");
   const [terminalVisible, setTerminalVisible] = useState(false);
-  const terminalRef = useRef(null);
-
-  const addTerminalOutput = useCallback((type, content) => {
-    if (!content) return;
+  const [commandHistory, setCommandHistory] = useState([]);
+  const [terminalOutput, setTerminalOutput] = useState([]);
+  
+  const addToCommandHistory = useCallback((command) => {
+    if (!command || command.trim() === '') return;
     
-    // Handle multiline output
-    const lines = content.toString().split('\n');
-    
-    setTerminalOutput(prev => {
-      const newOutput = [...prev];
-      
-      for (const line of lines) {
-        if (line.trim()) {
-          newOutput.push({ type, content: line });
-        }
+    setCommandHistory(prev => {
+      // Don't add duplicate commands consecutively
+      if (prev.length > 0 && prev[prev.length - 1] === command) {
+        return prev;
       }
       
-      // Keep last 1000 lines to prevent excessive memory usage
-      return newOutput.slice(-1000);
+      // Add command to history and limit size to 100
+      const newHistory = [...prev, command];
+      if (newHistory.length > 100) {
+        return newHistory.slice(-100);
+      }
+      return newHistory;
     });
   }, []);
 
-  const clearTerminal = useCallback(() => {
-    setTerminalOutput([{
-      type: "system",
-      content: "Terminal cleared"
-    }]);
+  const addTerminalOutput = useCallback((type, content) => {
+    setTerminalOutput(prev => [...prev, { type, content }]);
   }, []);
 
   return (
     <TerminalContext.Provider value={{
-      terminalOutput,
-      terminalInput,
-      setTerminalInput,
       terminalVisible,
       setTerminalVisible,
-      terminalRef,
-      addTerminalOutput,
-      clearTerminal
+      commandHistory,
+      addToCommandHistory,
+      terminalOutput,
+      addTerminalOutput
     }}>
       {children}
     </TerminalContext.Provider>

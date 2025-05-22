@@ -1,5 +1,4 @@
-// app/lib/containerName.js
-// Hardcoded container name for persistence
-const containerName = 'kali-default';
+// Container name constant used across the application
+const containerName = "vm-container";
 
-export default containerName;
+export default containerName; 
