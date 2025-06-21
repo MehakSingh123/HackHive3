@@ -61,7 +61,7 @@ export async function POST(request) {
       const chatCompletion = await Promise.race([
         groq.chat.completions.create({
           messages,
-          model: "llama-3.3-70b-versatile",
+          model: "meta-llama/llama-4-scout-17b-16e-instruct",
           temperature: 0.7,  // Add temperature parameter for more control
           max_tokens: 1024,  // Add token limit to prevent overly long responses
         }),

@@ -1,251 +1,416 @@
-'use client';
+"use client";
 
-import React, { useEffect, useRef, useState, useContext } from 'react';
-import { Terminal } from '@xterm/xterm';
-import '@xterm/xterm/css/xterm.css';
-import { VMContext } from '../contexts/VMContext';
-import { useWindowManager } from '../contexts/WindowManagerContext';
+import React, { useEffect, useRef, useState, useContext } from "react";
+import { Terminal } from "@xterm/xterm";
+import "@xterm/xterm/css/xterm.css";
+import { VMContext } from "../contexts/VMContext";
+import { useWindowManager } from "../contexts/WindowManagerContext";
 
-// Add the following option to fix number key issues
-const terminalOptions = {
-    rows: 25,
+function TerminalComponent() {
+  const terminalRef = useRef(null);
+  const terminal = useRef(null);
+  const websocket = useRef(null);
+  const lastCommandTimestamp = useRef(null);
+  
+  const { vmStatus, containerId } = useContext(VMContext);
+  const { commandToRun, clearCommandToRun } = useWindowManager();
+  
+  const [isConnected, setIsConnected] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(true);
+  const [overlayMessage, setOverlayMessage] = useState("Initializing...");
+  const [inputText, setInputText] = useState("");
+
+  const terminalConfig = {
+    rows: 24,
     cols: 80,
     cursorBlink: true,
     fontSize: 14,
+    fontFamily: "monospace",
     theme: {
-        background: '#0A192F',
-        foreground: '#E0E0E0',
-        cursor: '#E0E0E0',
+      background: "#0A192F",
+      foreground: "#E0E0E0",
+      cursor: "#E0E0E0",
     },
-    allowProposedApi: true, // May be needed for some xterm features
-    disableStdin: false, // Ensure stdin is enabled
-    screenReaderMode: false, // Disable screen reader mode which can affect input
-    convertEol: true, // Convert EOL characters
-    // This is a key addition - define a custom key bindings handler
-    customKeyEventHandler: (event) => {
-        // Don't intercept any keyboard events - let them all pass through
+    scrollback: 1000,
+  };
+
+  const sendToServer = (data) => {
+    if (websocket.current?.readyState === WebSocket.OPEN) {
+      try {
+        websocket.current.send(data);
+        console.log(`Sent: "${data}"`);
         return true;
+      } catch (error) {
+        console.error("Send error:", error);
+        return false;
+      }
     }
-};
+    console.error("WebSocket not ready");
+    return false;
+  };
 
-function TerminalComponent() {
-    const terminalRef = useRef(null);
-    const termInstance = useRef(null);
-    const wsInstance = useRef(null);
-    const dataListener = useRef(null);
-    const lastProcessedTimestampRef = useRef(null);
-    const { vmStatus, containerId } = useContext(VMContext);
-    const { commandToRun, clearCommandToRun } = useWindowManager();
-    const [isConnected, setIsConnected] = useState(false);
-    const [showOverlay, setShowOverlay] = useState(true);
-    const [overlayMessage, setOverlayMessage] = useState("Initializing...");
+  const sendKey = (key) => {
+    if (key === "\x7F" || key === "\b") {
+      terminal.current?.write("\b \b");
+    } else if (/^\d$/.test(key)) {
+      terminal.current?.write(key);
+    }
+    sendToServer(key);
+  };
 
-    // --- Main Setup Effect ---
-    useEffect(() => {
-        console.log(`Terminal Effect Run. Status: ${vmStatus}, ID: ${containerId}`);
-        let isMounted = true;
+  const handleNumberClick = (num) => {
+    const numStr = num.toString();
+    console.log(`Number clicked: ${numStr}`);
+    terminal.current?.write(numStr);
+    sendToServer(numStr);
+    focusTerminal();
+  };
 
-        // --- Define Cleanup Logic ---
-        const cleanup = (caller) => {
-             console.log(`Cleanup: Starting (called by ${caller}). isMounted: ${isMounted}`);
-             if (!isMounted && caller !== 'effect return') return;
-             isMounted = false;
+  const cleanup = () => {
+    console.log("Cleaning up terminal");
+    
+    if (websocket.current) {
+      if (websocket.current.readyState <= WebSocket.OPEN) {
+        websocket.current.close(1000, "Component cleanup");
+      }
+      websocket.current = null;
+    }
+    
+    if (terminal.current) {
+      terminal.current.dispose();
+      terminal.current = null;
+    }
+  };
 
-             if (dataListener.current) { console.log('Cleanup: Disposing data listener'); dataListener.current.dispose(); dataListener.current = null; }
+  const getOverlayMessage = () => {
+    if (vmStatus === "Loading..." || vmStatus === "Checking...") {
+      return "Checking VM status...";
+    }
+    if (vmStatus === "Starting...") {
+      return "VM is starting...";
+    }
+    if (vmStatus === "Stopping...") {
+      return "VM is stopping...";
+    }
+    if (vmStatus === "Stopped" || vmStatus === "Not Found") {
+      return "VM is stopped. Please start it.";
+    }
+    if (vmStatus.startsWith("Error")) {
+      return `VM Error: ${vmStatus.split(": ")[1] || "Unknown"}. Try restarting.`;
+    }
+    if (vmStatus !== "Started") {
+      return `VM Status: ${vmStatus}. Terminal requires 'Started' state.`;
+    }
+    if (!containerId) {
+      return "VM Started, but container ID missing.";
+    }
+    return "";
+  };
 
-             if (wsInstance.current) {
-                 console.log(`Cleanup: Closing WebSocket (state: ${wsInstance.current.readyState})`);
-                 if (wsInstance.current.readyState === WebSocket.OPEN || wsInstance.current.readyState === WebSocket.CONNECTING) {
-                     wsInstance.current.close(1000, "Component cleanup");
-                 }
-                 wsInstance.current = null;
-             }
-             if (termInstance.current) {
-                 console.log('Cleanup: Disposing xterm instance');
-                 termInstance.current.dispose();
-                 termInstance.current = null;
-             }
-             console.log(`Cleanup: Finished (called by ${caller}).`);
-        };
+  const initializeTerminal = () => {
+    console.log(`Initializing terminal for container: ${containerId}`);
 
-        // --- Update Overlay Based on Status ---
-        let currentOverlayMessage = "Terminal unavailable.";
-        if (vmStatus === "Loading..." || vmStatus === "Checking...") { currentOverlayMessage = "Checking VM status..."; }
-        else if (vmStatus === "Starting...") { currentOverlayMessage = "VM is starting..."; }
-        else if (vmStatus === "Stopping...") { currentOverlayMessage = "VM is stopping..."; }
-        else if (vmStatus === "Stopped" || vmStatus === "Not Found") { currentOverlayMessage = "VM is stopped. Please start it."; }
-        else if (vmStatus.startsWith("Error")) { currentOverlayMessage = `VM Error: ${vmStatus.split(': ')[1] || 'Unknown'}. Try restarting.`; }
-        else if (vmStatus !== "Started") { currentOverlayMessage = `VM Status: ${vmStatus}. Terminal requires 'Started' state.` }
-        else if (!containerId) { currentOverlayMessage = "VM Started, but container ID missing."; }
-        else { currentOverlayMessage = ""; } // No message if ready
+    try {
+      terminal.current = new Terminal(terminalConfig);
+      terminal.current.open(terminalRef.current);
+      terminal.current.focus();
 
-        if (currentOverlayMessage) {
-            console.log("Terminal Effect: Showing Overlay -", currentOverlayMessage);
-            setShowOverlay(true);
-            setOverlayMessage(currentOverlayMessage);
-            cleanup('status not ready');
-            return;
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${window.location.host}/api/terminal?containerId=${encodeURIComponent(containerId)}`;
+      
+      console.log(`Connecting to: ${wsUrl}`);
+      websocket.current = new WebSocket(wsUrl);
+
+      websocket.current.onopen = () => {
+        console.log("WebSocket connected");
+        setIsConnected(true);
+        terminal.current?.writeln("\r\n\x1b[32mConnected.\x1b[0m");
+        terminal.current?.scrollToBottom();
+        terminal.current?.focus();
+      };
+
+      websocket.current.onclose = (event) => {
+        console.log(`WebSocket closed: ${event.code} - ${event.reason}`);
+        setIsConnected(false);
+        terminal.current?.writeln(`\r\n\x1b[31mConnection closed (Code: ${event.code}).\x1b[0m`);
+        terminal.current?.scrollToBottom();
+        
+        if (!event.wasClean && !showOverlay) {
+          setShowOverlay(true);
+          setOverlayMessage(`Connection lost (Code: ${event.code}). Check VM status or refresh.`);
         }
+      };
 
-        // --- Proceed only if VM is Started with ID and not already initialized ---
-        if (!terminalRef.current || termInstance.current) {
-            console.log(`Terminal Effect: Skipping init (Ref exists: ${!!terminalRef.current}, Term exists: ${!!termInstance.current})`);
-            return;
-        }
+      websocket.current.onerror = (error) => {
+        console.error("WebSocket error:", error);
+      };
 
-        // --- Initialize Terminal ---
-        console.log(`Init: Initializing terminal for container: ${containerId}`);
-        setShowOverlay(false);
+      websocket.current.onmessage = (event) => {
+        if (!terminal.current) return;
 
         try {
-            termInstance.current = new Terminal(terminalOptions);
-            termInstance.current.open(terminalRef.current);
-            console.log('Init: Terminal opened on element.');
-            termInstance.current.focus();
-
-            // --- WebSocket Setup ---
-            const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const host = window.location.host;
-            const wsUrl = `${proto}//${host}/api/terminal?containerId=${encodeURIComponent(containerId)}`;
-            console.log(`Init: Connecting WebSocket to: ${wsUrl}`);
-            wsInstance.current = new WebSocket(wsUrl);
-            setIsConnected(false);
-
-            // --- WebSocket Event Handlers ---
-            wsInstance.current.onopen = () => {
-                console.log('WS: onopen event fired. isMounted:', isMounted);
-                if (!isMounted) { console.log('WS: onopen - Bailing: Component unmounted.'); return; }
-                console.log('WS: onopen - Setting isConnected = true');
-                setIsConnected(true);
-                if (termInstance.current) {
-                    console.log('WS: onopen - Terminal instance exists.');
-                    console.log('WS: onopen - Writing "Connected." to terminal...');
-                    try {
-                         termInstance.current.writeln('\x1b[32mConnected.\x1b[0m');
-                         console.log('WS: onopen - Focusing terminal...');
-                         termInstance.current.focus();
-                    } catch(termError) { console.error("WS: onopen - Error interacting with terminal instance:", termError); }
-                    console.log('WS: onopen - handler finished execution.');
-                } else { console.warn('WS: onopen - termInstance not ready when onopen fired.'); }
-            };
-            wsInstance.current.onclose = (event) => {
-                console.log(`WS: WebSocket Disconnected. Code: ${event.code}, Reason: ${event.reason || 'N/A'}, Clean: ${event.wasClean}, isMounted: ${isMounted}`);
-                if (!isMounted) return;
-                setIsConnected(false);
-                if (termInstance.current) {
-                    try {
-                        termInstance.current.writeln(`\r\n\x1b[31mConnection closed (Code: ${event.code}).\x1b[0m`);
-                    } catch (e) { console.error("Error writing close message to term:", e);}
-                }
-            };
-            wsInstance.current.onerror = (error) => {
-                console.error('WS: WebSocket Error:', error);
-                 if (!isMounted) return;
-                 // Error usually precedes close
-            };
-            wsInstance.current.onmessage = (event) => {
-                if (!isMounted || !termInstance.current) return;
-                 try {
-                     if (event.data instanceof Blob) {
-                         const reader = new FileReader();
-                         reader.onload = () => termInstance.current?.write(new Uint8Array(reader.result));
-                         reader.readAsArrayBuffer(event.data);
-                     } else if (typeof event.data === 'string') {
-                         termInstance.current?.write(event.data);
-                     } else if (event.data instanceof ArrayBuffer) {
-                         termInstance.current?.write(new Uint8Array(event.data));
-                     }
-                 } catch (writeError) {
-                     console.error("WS: onmessage - Error writing to terminal:", writeError);
-                 }
-            };
-
-            // --- Xterm.js Input Handler ---
-            console.log('Init: Attaching onData listener...');
-            dataListener.current = termInstance.current.onData((data) => {
-                if (wsInstance.current && wsInstance.current.readyState === WebSocket.OPEN) {
-                    // Format the data as expected by the server
-                    // Try sending the raw data directly without JSON formatting
-                    try {
-                        // Just send the raw data as-is
-                        wsInstance.current.send(data);
-                        
-                        // Debug logging for number keys
-                        if (data.length === 1 && data.charCodeAt(0) >= 48 && data.charCodeAt(0) <= 57) {
-                            console.log(`Sending number key: ${data} (${data.charCodeAt(0)})`);
-                        }
-                    } catch (error) {
-                        console.error('Error sending data:', error);
-                    }
-                } else { 
-                    console.error('WebSocket not ready when trying to send data.'); 
-                }
+          let data;
+          
+          if (event.data instanceof Blob) {
+            event.data.arrayBuffer().then((buffer) => {
+              if (terminal.current) {
+                terminal.current.write(new Uint8Array(buffer));
+                terminal.current.scrollToBottom();
+              }
             });
+            return;
+          }
+          
+          if (typeof event.data === "string") {
+            data = event.data;
+          } else if (event.data instanceof ArrayBuffer) {
+            data = new Uint8Array(event.data);
+          } else {
+            console.warn("Unexpected data type:", typeof event.data);
+            return;
+          }
 
-        } catch (initError) {
-             console.error("!!! Init: Error during terminal initialization:", initError);
-             setShowOverlay(true);
-             setOverlayMessage("Terminal Initialization Failed.");
-             cleanup('init error');
+          if (data) {
+            terminal.current.write(data);
+            terminal.current.scrollToBottom();
+          }
+        } catch (error) {
+          console.error("Message handling error:", error);
         }
+      };
 
-        // --- Return Cleanup Function from useEffect ---
-        return () => cleanup('effect return');
-
-    }, [vmStatus, containerId]);
-
-    useEffect(() => {
-        // Check if commandToRun exists, has content, and is new
-        if (commandToRun && commandToRun.cmd && commandToRun.timestamp > (lastProcessedTimestampRef.current || 0)) {
-             console.log(`TerminalComponent: Processing command from context (ts: ${commandToRun.timestamp}):`, commandToRun.cmd.trim());
-            const currentWs = wsInstance.current;
-
-            if (currentWs && currentWs.readyState === WebSocket.OPEN) {
-                console.log("TerminalComponent: Sending command via WebSocket...");
-                currentWs.send(commandToRun.cmd);
-                lastProcessedTimestampRef.current = commandToRun.timestamp;
-            } else {
-                 console.error(`TerminalComponent: Cannot send command from context, WebSocket not OPEN (state: ${currentWs?.readyState}).`);
-                 const currentTerm = termInstance.current;
-                 currentTerm?.writeln(`\r\n\x1b[31m[Cannot execute received command: Not connected]\x1b[0m`);
-            }
-             clearCommandToRun();
-
-        } else if (commandToRun && commandToRun.timestamp <= (lastProcessedTimestampRef.current || 0)) {
-             // Log if we skipped processing an already seen command timestamp
-             // console.log("TerminalComponent: Skipping already processed command timestamp:", commandToRun.timestamp);
+      terminal.current.onData((data) => {
+        console.log(`Terminal input: "${data}"`);
+        
+        if (data === "\x7F" || data === "\b") {
+          terminal.current.write("\b \b");
+        } else if (/^\d$/.test(data) && data.length === 1) {
+          terminal.current.write(data);
         }
-    }, [commandToRun, clearCommandToRun]);
+        
+        sendToServer(data);
+      });
 
-    // Add click handler to focus terminal when container is clicked
-    const handleContainerClick = () => {
-        if (termInstance.current && !showOverlay) {
-            termInstance.current.focus();
-        }
-    };
+      terminal.current.onKey(({ key, domEvent }) => {
+        // Key listener for special handling if needed
+      });
 
-    return (
-        <div 
-            style={{ width: '100%', height: '600px', position: 'relative', background: '#0A192F', overflow: 'hidden' }}
-            onClick={handleContainerClick}
-        >
-           {showOverlay && (
-               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(10, 25, 47, 0.85)', color: '#ccc', fontSize: '1.1em', zIndex: 10, padding: '20px', textAlign: 'center' }}>
-                   {overlayMessage}
-               </div>
-           )}
-          <div
-              ref={terminalRef}
-              style={{
-                  width: '100%',
-                  height: '100%',
-                  minWidth: '400px',
-                  minHeight: '300px',
-                  visibility: showOverlay ? 'hidden' : 'visible'
-               }}
-           />
+      terminal.current.writeln("\x1b[33mTerminal initialized. Connecting...\x1b[0m");
+      terminal.current.scrollToBottom();
+      
+    } catch (error) {
+      console.error("Terminal initialization error:", error);
+      setShowOverlay(true);
+      setOverlayMessage(`Terminal failed to initialize: ${error.message}`);
+      cleanup();
+    }
+  };
+
+  useEffect(() => {
+    console.log(`Terminal effect - Status: ${vmStatus}, Container: ${containerId}`);
+    
+    const message = getOverlayMessage();
+    
+    if (message) {
+      console.log("Showing overlay:", message);
+      cleanup();
+      setShowOverlay(true);
+      setOverlayMessage(message);
+      return;
+    }
+    
+    setShowOverlay(false);
+    
+    if (vmStatus === "Started" && containerId && !terminal.current && terminalRef.current) {
+      initializeTerminal();
+    }
+    
+    return cleanup;
+  }, [vmStatus, containerId]);
+
+  useEffect(() => {
+    if (commandToRun?.cmd && commandToRun.timestamp > (lastCommandTimestamp.current || 0)) {
+      console.log(`Processing command: ${commandToRun.cmd.trim()}`);
+      
+      const command = commandToRun.cmd.endsWith("\n") || commandToRun.cmd.endsWith("\r") 
+        ? commandToRun.cmd 
+        : `${commandToRun.cmd}\r`;
+      
+      if (sendToServer(command)) {
+        lastCommandTimestamp.current = commandToRun.timestamp;
+      } else {
+        console.warn("Failed to send command - WebSocket not ready");
+      }
+      
+      clearCommandToRun();
+    }
+  }, [commandToRun, clearCommandToRun]);
+
+  const handleInputSubmit = (e) => {
+    e.preventDefault();
+    if (inputText) {
+      sendToServer(inputText + "\r");
+      setInputText("");
+      focusTerminal();
+    }
+  };
+
+  const focusTerminal = () => {
+    if (terminal.current && !showOverlay) {
+      terminal.current.focus();
+    }
+  };
+
+  const specialKeys = [
+    { label: "Tab", key: "\t" },
+    { label: "Ctrl+C", key: "\x03" },
+    { label: "Ctrl+D", key: "\x04" },
+    { label: "Enter", key: "\r" },
+    { label: "Space", key: " " },
+    { label: "Backspace", key: "\x7F" },
+  ];
+
+  const buttonStyle = {
+    margin: "2px",
+    padding: "8px 12px",
+    background: "#1E3A60",
+    color: "white",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
+    fontSize: "14px",
+  };
+
+  const specialButtonStyle = { 
+    ...buttonStyle, 
+    background: "#2A4A77" 
+  };
+
+  return (
+    <div style={{
+      width: "100%",
+      height: "100%",
+      position: "relative",
+      background: "#0A192F",
+      overflow: "hidden",
+      display: "flex",
+      flexDirection: "column",
+    }}>
+      {showOverlay && (
+        <div style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "rgba(10, 25, 47, 0.85)",
+          color: "#ccc",
+          fontSize: "1.1em",
+          zIndex: 10,
+          padding: "20px",
+          textAlign: "center",
+        }}>
+          {overlayMessage}
         </div>
-    );
+      )}
+
+      <div 
+        style={{ flex: 1, position: "relative", minHeight: "200px" }}
+        onClick={focusTerminal}
+      >
+        <div
+          ref={terminalRef}
+          style={{
+            width: "100%",
+            height: "100%",
+            visibility: showOverlay ? "hidden" : "visible",
+          }}
+        />
+      </div>
+
+      {!showOverlay && (
+        <div style={{
+          padding: "8px",
+          background: "#0F2947",
+          borderTop: "1px solid #2A385B",
+          flexShrink: 0,
+        }}>
+          <div style={{
+            marginBottom: "8px",
+            display: "flex",
+            justifyContent: "center",
+            flexWrap: "wrap",
+          }}>
+            {Array.from({ length: 10 }, (_, i) => (
+              <button
+                key={i}
+                onClick={() => handleNumberClick(i)}
+                style={buttonStyle}
+              >
+                {i}
+              </button>
+            ))}
+          </div>
+
+          <div style={{
+            marginBottom: "8px",
+            display: "flex",
+            justifyContent: "center",
+            flexWrap: "wrap",
+          }}>
+            {specialKeys.map(({ label, key }) => (
+              <button
+                key={label}
+                onClick={() => {
+                  sendKey(key);
+                  focusTerminal();
+                }}
+                style={specialButtonStyle}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={handleInputSubmit} style={{ display: "flex" }}>
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder="Type text to send..."
+              style={{
+                flex: 1,
+                padding: "8px",
+                background: "#162B44",
+                color: "white",
+                border: "1px solid #2A385B",
+                borderRadius: "4px 0 0 4px",
+                outline: "none",
+                fontSize: "14px",
+              }}
+            />
+            <button
+              type="submit"
+              style={{
+                padding: "8px 16px",
+                background: "#264F82",
+                color: "white",
+                border: "none",
+                borderRadius: "0 4px 4px 0",
+                cursor: "pointer",
+                fontSize: "14px",
+              }}
+            >
+              Send
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default TerminalComponent;

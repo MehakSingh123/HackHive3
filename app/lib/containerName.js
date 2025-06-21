@@ -1,4 +1,4 @@
 // Container name constant used across the application
-const containerName = "vm-container";
+const containerName = "kali-default";
 
 export default containerName; 

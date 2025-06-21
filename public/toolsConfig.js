@@ -1,5 +1,6 @@
 // config/toolsConfig.js
-import { Activity, Globe, Shield, Lock, Search, Database, Target } from "lucide-react"; // Added Search, Database, Target
+
+import { Activity, Globe, Shield, Lock, Search, Database, Target, Code, AlertTriangle } from "lucide-react"; // Added AlertTriangle and Code
 
 export const toolsConfig = {
   groups: {
@@ -494,5 +495,61 @@ export const toolsConfig = {
         },
       },
     }, // End infoGathering Group
+
+    phishingTools: {
+      name: "Phishing Tools",
+      tools: {
+        maxPhisher: {
+          id: 11,
+          name: "MaxPhisher",
+          icon: <AlertTriangle size={24} />,
+          description: "Advanced phishing toolkit for educational use", // Short description for grid/tooltip
+          isInfoOnly: true, // *** Key Flag ***
+          info: { // *** Detailed info for the card ***
+            description: "MaxPhisher is a comprehensive phishing toolkit designed to create and manage sophisticated phishing campaigns for ethical hacking and security awareness training. Use cases include security awareness training, authorized penetration testing, and educational demonstrations.",
+            usage: "To use MaxPhisher (ensure you have authorization):\n1. Open your terminal.\n2. Run the command: `maxphisher`\n3. Follow the interactive menu to select templates.\n4. Configure attack settings and deployment options.\n\n**WARNING:** For educational and authorized testing purposes ONLY. Unauthorized use is illegal and unethical.",
+            risk: "High",
+            tags: ["Phishing", "Social Engineering", "Credential Harvesting", "Security Training"],
+          },
+          enabled: true, // Still controlled by vmStatus
+        },
+        zphisher: {
+          id: 12,
+          name: "Zphisher",
+          icon: <AlertTriangle size={24} />,
+          description: "Automated phishing tool with multiple templates",
+          isInfoOnly: true, // *** Key Flag ***
+          info: { // *** Detailed info for the card ***
+            description: "Zphisher is an automated phishing tool with a wide variety of pre-built website templates, streamlining the creation of convincing phishing pages for security testing. Use cases include security training, demonstrating social engineering, testing policies, and authorized penetration tests.",
+            usage: "To use Zphisher (ensure you have authorization):\n1. Open your terminal.\n2. Run the command: `zphisher`\n3. Select a website template from the menu.\n4. Choose a hosting/tunneling method (e.g., localhost, Ngrok).\n5. Share the generated link ONLY in authorized test environments.\n6. Monitor the terminal for captured credentials (if any).\n\n**WARNING:** This tool must ONLY be used in legal contexts like security assessments with explicit authorization. Unauthorized phishing is illegal.",
+            risk: "High",
+            tags: ["Phishing", "Automated", "Templates", "Social Engineering", "Credential Harvesting"],
+          },
+          enabled: true, // Still controlled by vmStatus
+        },
+        // Add other phishing tools here following the same pattern
+      }
+    }, // End phishingTools Group
+    dosTools: {
+      name: "DoS Tools",
+      tools: {
+          slowloris: {
+              id: 13, // Next available ID
+              name: "Slowloris",
+              description: "Low-bandwidth DoS attack tool for testing", // Short description
+              isInfoOnly: true, // *** Key Flag ***
+              info: { // *** Detailed info for the card ***
+                  description: "Slowloris is a type of denial-of-service (DoS) attack tool that requires minimal bandwidth. It works by opening multiple connections to a target web server and keeping them open as long as possible by sending partial HTTP requests, eventually exhausting the server's connection pool. It is effective against servers that handle connections inefficiently. Intended use cases include understanding application-layer DoS vulnerabilities and authorized server stress testing.",
+                  usage: "To use Slowloris (ensure you have authorization):\n1. Open your terminal.\n2. Run the command, typically like:\n   `slowloris <target_ip> -p <port> [options]`\n   (Replace `<target_ip>` and `<port>` (e.g., 80)). eg (slowloris 175.176.187.102 -s 200000 --sleeptime 1) \n4. Observe the target's responsiveness (only on authorized targets).\n\n**WARNING:** Using Slowloris against targets without explicit prior authorization is illegal and unethical. This information is for educational and authorized testing purposes ONLY.",
+                  risk: "High",
+                  tags: ["DoS", "Application Layer", "Slow HTTP", "Web Server", "Stress Test"]
+              },
+              enabled: true, // Still controlled by vmStatus
+          },
+          // Add other DoS tools here following the same pattern (e.g., Hulk, GoldenEye)
+      }
   }, // End groups
+  
+}
+
 };

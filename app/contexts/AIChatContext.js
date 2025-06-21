@@ -4,76 +4,76 @@ import { createContext, useContext, useState, useCallback } from "react";
 
 const AIChatContext = createContext();
 
-export function AIChatProvider({ children }) {
-  // Removed Terminal context usage here
-  const [messages, setMessages] = useState([
-      // Optional: Add an initial system message
-      // { role: "assistant", content: "Hello! How can I assist you today?" }
-  ]);
-  const [isLoading, setIsLoading] = useState(false);
-  // Removed chatVisible and isPinned states
+// CHANGED: The provider now accepts a `systemPrompt` prop.
+export function AIChatProvider({ children, systemPrompt }) {
+ const [messages, setMessages] = useState([]);
+ const [isLoading, setIsLoading] = useState(false);
 
-  const addMessage = useCallback(async (newMessageContent) => {
-     // Add user message immediately
-     const userMessage = { role: "user", content: newMessageContent };
-     setMessages(prev => [...prev, userMessage]);
-     setIsLoading(true);
+ const addMessage = useCallback(async (newMessageContent) => {
+  const userMessage = { role: "user", content: newMessageContent };
+  setMessages(prev => [...prev, userMessage]);
+  setIsLoading(true);
 
-     // Prepare messages to send to API (e.g., include history)
-     // const messagesToSend = [...messages, userMessage]; // Or adjust history length as needed
+  try {
+      // CHANGED: We now create the full message payload for the API,
+      // including the system prompt, the message history, and the new user message.
+   const messagesToSend = [
+        { role: "system", content: systemPrompt }, // Always add the system prompt first
+        ...messages,
+        userMessage
+      ];
 
-     try {
-       const res = await fetch("/api/chat", {
-         method: "POST",
-         headers: { "Content-Type": "application/json" },
-         // Send current message history along with the new one
-         body: JSON.stringify({ messages: [...messages, userMessage] }), // Send history
-       });
+   const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+        // CHANGED: Send the newly constructed message array.
+    body: JSON.stringify({ messages: messagesToSend }),
+   });
 
-       if (!res.ok) {
-          const errorData = await res.json().catch(() => ({ error: 'Request failed' }));
-          throw new Error(errorData.error || `API request failed with status ${res.status}`);
-       }
+   if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(errorData.error || `API request failed with status ${res.status}`);
+   }
 
-       const data = await res.json();
-       if (data.content) {
-           setMessages(prev => [...prev, { role: "assistant", content: data.content }]);
-       } else {
-            throw new Error("Received empty response from AI");
-       }
+   const data = await res.json();
+   if (data.content) {
+        // Here, we only add the assistant's response to our local state.
+        // The user message is already there. We don't store the system prompt in the visible chat.
+    setMessages(prev => [...prev, { role: "assistant", content: data.content }]);
+   } else {
+    throw new Error("Received empty response from AI");
+   }
 
-     } catch (error) {
-       console.error("Error fetching AI response:", error);
-       setMessages(prev => [...prev, { role: "assistant", content: `Error: ${error.message}` }]);
-     } finally {
-       setIsLoading(false);
-     }
-   }, [messages]); // Include messages in dependency array for history
+  } catch (error) {
+   console.error("Error fetching AI response:", error);
+   setMessages(prev => [...prev, { role: "assistant", content: `Error: ${error.message}` }]);
+  } finally {
+   setIsLoading(false);
+  }
+    // CHANGED: Add `systemPrompt` to the dependency array.
+ }, [messages, systemPrompt]);
 
 
-    const clearChat = useCallback(() => {
-        setMessages([]); // Reset messages array
-        // Optional: Add back an initial system message if desired
-        // setMessages([{ role: "assistant", content: "Chat cleared. How can I help?" }]);
-    }, []);
+ const clearChat = useCallback(() => {
+  setMessages([]);
+ }, []);
 
-  return (
-    <AIChatContext.Provider value={{
-      messages,
-      addMessage,
-      isLoading,
-      clearChat // Expose clear chat function
-      // Removed chatVisible, setChatVisible, isPinned, setIsPinned, setTerminalInput, processCommand
-    }}>
-      {children}
-    </AIChatContext.Provider>
-  );
+ return (
+  <AIChatContext.Provider value={{
+   messages,
+   addMessage,
+   isLoading,
+   clearChat
+  }}>
+   {children}
+  </AIChatContext.Provider>
+ );
 }
 
 export const useAIChat = () => {
-    const context = useContext(AIChatContext);
-    if (context === undefined) {
-        throw new Error('useAIChat must be used within an AIChatProvider');
-    }
-    return context;
+ const context = useContext(AIChatContext);
+ if (context === undefined) {
+  throw new Error('useAIChat must be used within an AIChatProvider');
+ }
+ return context;
 };
